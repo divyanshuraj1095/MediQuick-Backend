@@ -1,12 +1,12 @@
 const express = require("express");
 const {
-    getAllMedicnes,
+    getAllMedicines,
     searchMedicines,
     addMedicine} = require("../controllers/medicineControllers");
 
 const router = express.Router();
 
-router.get("/getmeds", getAllMedicnes);
+router.get("/getmeds", getAllMedicines);
 
 router.get("/search", searchMedicines);
 
