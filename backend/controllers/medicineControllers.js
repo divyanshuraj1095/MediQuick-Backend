@@ -51,7 +51,7 @@ exports.addMedicine = async(req, res)=>{
         }); 
     }catch(error){
         res.status(400).json({
-            success : failed,
+            success : false,
             message : "Failed to add mwdicine !!",
             error : error.message,
         });
