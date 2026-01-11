@@ -1,5 +1,6 @@
 const Order = require("../models/Order");
 const Medicine = require("../models/Medicines");
+const Pharmacy = require("../models/Pharmacy");
 
 exports.createOrder = async(req, res) =>{
     try {
@@ -48,7 +49,7 @@ exports.createOrder = async(req, res) =>{
 exports.getMyOrders = async(req, res) =>{
     try {
         const orders = await Order.find({user : req.user.id})
-        .populate("items.medicine", "name Price")
+        .populate("items.medicine", "name price")
         .sort({createdAt : -1});
 
         res.status(200).json({
@@ -73,7 +74,7 @@ exports.getOrderById = async(req, res) =>{
 
         if(!order){
             return res.status(404).json({
-                success : failed,
+                success : false,
                 message : "Order not found",
             });
         }
@@ -83,7 +84,7 @@ exports.getOrderById = async(req, res) =>{
         });
     }catch(error){
         res.status(500).json({
-            success : failed,
+            success : false,
             message : "failed to fetch order",
             error : error.message,
         });
@@ -95,7 +96,7 @@ exports.userOrderStatus = async(req, res) =>{
         const {status} = req.body;
         const order = await Order.findByIdAndUpdate(
             req.params.id,
-            {status},
+            {orderStatus : status},
             {new : true}
         );
 
@@ -115,7 +116,7 @@ exports.userOrderStatus = async(req, res) =>{
         res.status(500).json({
           success : false,
           message : "failed to update order",
-          error : message.error,
+          error : error.message,
         });
     }
 };
