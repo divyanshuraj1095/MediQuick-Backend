@@ -14,6 +14,7 @@ app.use("/api/auth", require("./routes/auth.js"));
 app.use("/api/medicine", require("./routes/medicine.js"));
 app.use("/api/order", require("./routes/orders.js"));
 app.use("/api/pharmacies", require("./routes/pharmacy.js"));
+app.use("/api/searchmed", require("./routes/search.js"));
 
 
 
