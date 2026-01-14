@@ -7,7 +7,7 @@ const router = express.Router();
 
 router.post("/", protect, createOrder);
 
-router.get("/myorders", getMyOrders);
+router.get("/myorders", protect, getMyOrders);
 
 router.get("/:id", getOrderById);
 
