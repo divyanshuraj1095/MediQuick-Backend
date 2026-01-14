@@ -121,3 +121,55 @@ exports.userOrderStatus = async(req, res) =>{
         });
     }
 };
+
+exports.cancelOrder = async (req, res) => {
+  try {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+      return res.status(404).json({
+        success: false,
+        message: "Order not found",
+      });
+    }
+
+    // Optional but important security
+    if (order.user.toString() !== req.user.id) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to cancel this order",
+      });
+    }
+
+    // Prevent cancelling delivered orders
+    if (order.orderStatus === "delivered") {
+      return res.status(400).json({
+        success: false,
+        message: "Delivered orders cannot be cancelled",
+      });
+    }
+
+    // Restore stock
+    for (let item of order.items) {
+      await Medicine.findByIdAndUpdate(item.medicine, {
+        $inc: { stock: item.quantity },
+      });
+    }
+
+    // Update status
+    order.orderStatus = "cancelled";
+    await order.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Order cancelled successfully",
+    });
+
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to cancel order",
+      error: error.message,
+    });
+  }
+};
