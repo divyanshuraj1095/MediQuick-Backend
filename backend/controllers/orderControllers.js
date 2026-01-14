@@ -4,7 +4,7 @@ const Pharmacy = require("../models/Pharmacy");
 
 exports.createOrder = async(req, res) =>{
     try {
-        const {items, deliveryAddress, paymentMethod} = req.body;
+        const {pharmacy, items, deliveryAddress, paymentMethod} = req.body;
 
         let totalAmount = 0;
         for(let item of items){
@@ -21,6 +21,7 @@ exports.createOrder = async(req, res) =>{
 
         const order = await Order.create({
             user : req.user.id,
+            pharmacy,
             items,
             deliveryAddress,
             paymentMethod,
