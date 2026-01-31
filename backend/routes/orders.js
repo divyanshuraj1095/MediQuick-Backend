@@ -1,11 +1,12 @@
 const express = require("express");
 const { protect, authorize } = require("../middlewares/authMiddleware");
+const { blockRestrictedOrder } = require("../middlewares/orderMiddleware");
 
 const {createOrder, getMyOrders, getOrderById, userOrderStatus, cancelOrder} = require("../controllers/orderControllers");
 
 const router = express.Router();
 
-router.post("/", protect, createOrder);
+router.post("/", protect, blockRestrictedOrder, createOrder);
 
 router.get("/myorders", protect, getMyOrders);
 

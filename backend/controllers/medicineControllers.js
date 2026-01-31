@@ -1,5 +1,6 @@
 const Medicine = require('../models/Medicines');
 const Pharmacy = require('../models/Pharmacy');
+const { isPrescriptionRequired } = require("../utils/medicine.utils");
 
 exports.getAllMedicines = async (req, res) =>{
     try {
@@ -58,4 +59,17 @@ exports.addMedicine = async(req, res)=>{
         });
     }
 };
+
+// console.log(isPrescriptionRequired({
+//   name: "Paracetamol",
+//   category: "COMMON",
+//   drugSchedule: "OTC",
+//   prescriptionRequired: false
+// })); // false
+
+// console.log(isPrescriptionRequired({
+//   name: "Amoxicillin",
+//   category: "PRESCRIPTION",
+//   drugSchedule: "H"
+// })); // true
 

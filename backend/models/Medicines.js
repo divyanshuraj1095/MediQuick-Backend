@@ -13,9 +13,16 @@ const medicineSchema = mongoose.Schema(
         },
         category : {
             type : String,
+            enum: ["COMMON", "PRESCRIPTION"],
             required : true,
-            index : true,
+            default: "COMMON"
         },
+        drugSchedule: {
+            type: String,
+            enum: ["OTC", "H", "H1", "X"],
+            default: "OTC"
+        },
+
         price : {
             type : Number,
             required : true,

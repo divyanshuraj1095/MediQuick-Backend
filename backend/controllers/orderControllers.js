@@ -133,7 +133,6 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // Optional but important security
     if (order.user.toString() !== req.user.id) {
       return res.status(403).json({
         success: false,
@@ -141,7 +140,6 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // Prevent cancelling delivered orders
     if (order.orderStatus === "delivered") {
       return res.status(400).json({
         success: false,
@@ -149,14 +147,12 @@ exports.cancelOrder = async (req, res) => {
       });
     }
 
-    // Restore stock
     for (let item of order.items) {
       await Medicine.findByIdAndUpdate(item.medicine, {
         $inc: { stock: item.quantity },
       });
     }
 
-    // Update status
     order.orderStatus = "cancelled";
     await order.save();
 
