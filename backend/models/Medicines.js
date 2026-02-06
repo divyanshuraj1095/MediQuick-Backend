@@ -51,9 +51,19 @@ const medicineSchema = mongoose.Schema(
             type : Boolean,
             default : true,
         },
+        saltComposition : {
+            type : String,
+            index : true
+        },
+        alternatives : [
+            {
+               type : mongoose.Schema.Types.ObjectId,
+               ref : "Medicine"
+            }
+]
     },
     {timestamps : true}
 );
-
+medicineSchema.index({ name: "text", saltComposition: "text" });
 module.exports = mongoose.model("Medicine", medicineSchema);
 
