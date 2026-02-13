@@ -17,6 +17,7 @@ app.use("/api/pharmacies", require("./routes/pharmacy.js"));
 app.use("/api/searchmed", require("./routes/search.js"));
 app.use("/api/prescription", require("./routes/prescriptionRoutes.js"));
 app.use("/api/cart", require("./routes/cart"));
+app.use("/api/godown", require("./routes/godown.js"));
 
 
 

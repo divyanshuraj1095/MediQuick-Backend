@@ -1,171 +1,306 @@
 const Order = require("../models/Order");
 const Medicine = require("../models/Medicines");
 const Pharmacy = require("../models/Pharmacy");
+const GodownInventory = require("../models/GodownInventory");
 
-exports.createOrder = async(req, res) =>{
+
+// Distance utility (Haversine or your custom)
+const { getDistance } = require("../utils/distance.utils");
+
+exports.createOrder = async (req, res) => {
     try {
-        const {pharmacy, items, deliveryAddress, paymentMethod} = req.body;
+
+        const { items, deliveryAddress, paymentMethod } = req.body;
+
+        if (!items || items.length === 0) {
+            return res.status(400).json({
+                success: false,
+                message: "Order items required"
+            });
+        }
+
+        if (!deliveryAddress) {
+            return res.status(400).json({
+                success: false,
+                message: "Delivery address required"
+            });
+        }
+
+        // ⭐ User Location (MUST exist in user model or request)
+        const userLat = req.user.location?.lat;
+        const userLng = req.user.location?.lng;
+
+        if (!userLat || !userLng) {
+            return res.status(400).json({
+                success: false,
+                message: "User location not available"
+            });
+        }
 
         let totalAmount = 0;
-        for(let item of items){
+        let processedItems = [];
+
+        // 🔥 Process each item
+        for (let item of items) {
+
+            // 1️⃣ Check Medicine Exists
             const medicine = await Medicine.findById(item.medicine);
 
-            if(!medicine || medicine.stock < item.quantity){
-                return res.status(400).json({
-                    success : false,
-                    message : `Medicine unavailable or insufficient stock`,
+            if (!medicine) {
+                return res.status(404).json({
+                    success: false,
+                    message: "Medicine not found"
                 });
             }
-            totalAmount += medicine.price*item.quantity;
+
+            // 2️⃣ Find All Godowns Having Stock
+            const inventories = await GodownInventory.find({
+                medicine: item.medicine,
+                quantity: { $gte: item.quantity }
+            }).populate("godown");
+
+            if (!inventories.length) {
+                return res.status(400).json({
+                    success: false,
+                    message: `${medicine.name} unavailable or insufficient stock`
+                });
+            }
+
+            // 3️⃣ Find Nearest Godown
+            let selectedInventory = null;
+            let minDistance = Infinity;
+
+            for (let inv of inventories) {
+
+                if (!inv.godown?.location) continue;
+
+                const distance = getDistance(
+                    userLat,
+                    userLng,
+                    inv.godown.location.lat,
+                    inv.godown.location.lng
+                );
+
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    selectedInventory = inv;
+                }
+            }
+
+            if (!selectedInventory) {
+                return res.status(400).json({
+                    success: false,
+                    message: "No godown found near user"
+                });
+            }
+
+            // 4️⃣ Atomic Stock Deduction (VERY IMPORTANT)
+            const updatedInventory = await GodownInventory.findOneAndUpdate(
+                {
+                    _id: selectedInventory._id,
+                    quantity: { $gte: item.quantity }
+                },
+                {
+                    $inc: { quantity: -item.quantity }
+                },
+                { new: true }
+            );
+
+            if (!updatedInventory) {
+                return res.status(400).json({
+                    success: false,
+                    message: "Stock changed. Please retry."
+                });
+            }
+
+            // 5️⃣ Calculate Total
+            totalAmount += medicine.price * item.quantity;
+
+            // 6️⃣ Add To Order Items
+            processedItems.push({
+                medicine: medicine._id,
+                quantity: item.quantity,
+                price: medicine.price,
+                godown: updatedInventory.godown
+            });
         }
 
+        // ⭐ Create Final Order
         const order = await Order.create({
-            user : req.user.id,
-            pharmacy,
-            items,
+            user: req.user._id,
+            items: processedItems,
             deliveryAddress,
             paymentMethod,
-            totalAmount,
+            totalAmount
         });
-        for(let item of items){
-            await Medicine.findByIdAndUpdate(item.medicine, {
-                $inc : {stock : -item.quantity},
-            });
-        }
+
         res.status(201).json({
-            success : true,
-            message : "Order placed Successfully",
-            order,
-
+            success: true,
+            message: "Order placed successfully",
+            order
         });
-    }catch(error){
+
+    } catch (error) {
+
+        console.error("Create Order Error:", error);
+
         res.status(500).json({
-            success : false,
-            message : "Order creation failed",
-            error : error.message,
+            success: false,
+            message: "Order creation failed",
+            error: error.message
         });
     }
 };
 
-exports.getMyOrders = async(req, res) =>{
+
+
+// ================= GET MY ORDERS =================
+exports.getMyOrders = async (req, res) => {
     try {
-        const orders = await Order.find({user : req.user.id})
-        .populate("items.medicine", "name price")
-        .sort({createdAt : -1});
+
+        const orders = await Order.find({ user: req.user.id })
+            .populate("items.medicine", "name price")
+            .populate("items.godown", "name location")
+            .sort({ createdAt: -1 });
 
         res.status(200).json({
-            success : true,
-            count : orders.length, 
-            orders,
+            success: true,
+            count: orders.length,
+            orders
         });
-    }catch(error){
+
+    } catch (error) {
         res.status(500).json({
-            success : false,
-            message : "failed to fetch orders",
-            error : error.message,
+            success: false,
+            message: "Failed to fetch orders",
+            error: error.message
         });
     }
 };
 
-exports.getOrderById = async(req, res) =>{
-    try{
-        const order = await Order.findById(req.params.id)
-        .populate("user", "name email")
-        .populate("items.medicine", "name price");
 
-        if(!order){
+
+// ================= GET ORDER BY ID =================
+exports.getOrderById = async (req, res) => {
+    try {
+
+        const order = await Order.findById(req.params.id)
+            .populate("user", "name email")
+            .populate("items.medicine", "name price")
+            .populate("items.godown", "name location");
+
+        if (!order) {
             return res.status(404).json({
-                success : false,
-                message : "Order not found",
+                success: false,
+                message: "Order not found"
             });
         }
+
         res.status(200).json({
-            success : true,
-            order,
+            success: true,
+            order
         });
-    }catch(error){
+
+    } catch (error) {
         res.status(500).json({
-            success : false,
-            message : "failed to fetch order",
-            error : error.message,
+            success: false,
+            message: "Failed to fetch order",
+            error: error.message
         });
     }
 };
 
-exports.userOrderStatus = async(req, res) =>{
+
+
+// ================= UPDATE ORDER STATUS =================
+exports.userOrderStatus = async (req, res) => {
     try {
-        const {status} = req.body;
+
+        const { status } = req.body;
+
         const order = await Order.findByIdAndUpdate(
             req.params.id,
-            {orderStatus : status},
-            {new : true}
+            { orderStatus: status },
+            { new: true }
         );
 
-        if(!order){
+        if (!order) {
             return res.status(404).json({
-                success : false,
-                message : "Order not found",
+                success: false,
+                message: "Order not found"
             });
         }
 
         res.status(200).json({
-            success : true,
-            message : "order status updated",
-        })
+            success: true,
+            message: "Order status updated"
+        });
 
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
-          success : false,
-          message : "failed to update order",
-          error : error.message,
+            success: false,
+            message: "Failed to update order",
+            error: error.message
         });
     }
 };
 
+
+
+// ================= CANCEL ORDER =================
 exports.cancelOrder = async (req, res) => {
-  try {
-    const order = await Order.findById(req.params.id);
+    try {
 
-    if (!order) {
-      return res.status(404).json({
-        success: false,
-        message: "Order not found",
-      });
+        const order = await Order.findById(req.params.id);
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: "Order not found"
+            });
+        }
+
+        if (order.user.toString() !== req.user.id) {
+            return res.status(403).json({
+                success: false,
+                message: "Not authorized to cancel this order"
+            });
+        }
+
+        if (order.orderStatus === "delivered") {
+            return res.status(400).json({
+                success: false,
+                message: "Delivered orders cannot be cancelled"
+            });
+        }
+
+        // ⭐ Restore Stock To Godown Inventory
+        for (let item of order.items) {
+
+            const inventory = await GodownInventory.findOne({
+                medicine: item.medicine,
+                godown: item.godown
+            });
+
+            if (inventory) {
+                inventory.quantity += item.quantity;
+                await inventory.save();
+            }
+        }
+
+        order.orderStatus = "cancelled";
+        await order.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Order cancelled successfully"
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to cancel order",
+            error: error.message
+        });
     }
-
-    if (order.user.toString() !== req.user.id) {
-      return res.status(403).json({
-        success: false,
-        message: "Not authorized to cancel this order",
-      });
-    }
-
-    if (order.orderStatus === "delivered") {
-      return res.status(400).json({
-        success: false,
-        message: "Delivered orders cannot be cancelled",
-      });
-    }
-
-    for (let item of order.items) {
-      await Medicine.findByIdAndUpdate(item.medicine, {
-        $inc: { stock: item.quantity },
-      });
-    }
-
-    order.orderStatus = "cancelled";
-    await order.save();
-
-    res.status(200).json({
-      success: true,
-      message: "Order cancelled successfully",
-    });
-
-  } catch (error) {
-    res.status(500).json({
-      success: false,
-      message: "Failed to cancel order",
-      error: error.message,
-    });
-  }
 };

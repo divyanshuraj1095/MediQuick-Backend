@@ -1,11 +1,9 @@
 const Medicine = require('../models/Medicines');
-const Pharmacy = require('../models/Pharmacy');
 const { isPrescriptionRequired } = require("../utils/medicine.utils");
 
 exports.getAllMedicines = async (req, res) =>{
     try {
         const medicines = await Medicine.find({isAvailable : true})
-        .populate("pharmacy", "name address");
 
         res.status(200).json({
             success : true,
