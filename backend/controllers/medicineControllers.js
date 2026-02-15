@@ -1,5 +1,7 @@
 const Medicine = require('../models/Medicines');
 const { isPrescriptionRequired } = require("../utils/medicine.utils");
+const uploadToCloudinary = require("../utils/uploadToCloudinary");
+
 
 exports.getAllMedicines = async (req, res) =>{
     try {
@@ -41,33 +43,35 @@ exports.searchMedicines = async (req, res) =>{
     }
 };
 
-exports.addMedicine = async(req, res)=>{
-    try{
-        const medicine = await Medicine.create(req.body);
-        res.status(210).json({
-            success : true,
-            message : "Medicine Added successfully!!",
-            medicine,
-        }); 
-    }catch(error){
-        res.status(400).json({
-            success : false,
-            message : "Failed to add mwdicine !!",
-            error : error.message,
+exports.addMedicine = async (req, res) => {
+    try {
+
+        let imageUrl = "";
+
+        // Upload image if exists
+        if (req.file) {
+            const result = await uploadToCloudinary(req.file.buffer);
+            imageUrl = result.secure_url;
+        }
+
+        const medicine = await Medicine.create({
+            ...req.body,
+            image: imageUrl
+        });
+
+        res.status(201).json({
+            success: true,
+            message: "Medicine Added Successfully",
+            medicine
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to add medicine",
+            error: error.message
         });
     }
 };
 
-// console.log(isPrescriptionRequired({
-//   name: "Paracetamol",
-//   category: "COMMON",
-//   drugSchedule: "OTC",
-//   prescriptionRequired: false
-// })); // false
-
-// console.log(isPrescriptionRequired({
-//   name: "Amoxicillin",
-//   category: "PRESCRIPTION",
-//   drugSchedule: "H"
-// })); // true
 

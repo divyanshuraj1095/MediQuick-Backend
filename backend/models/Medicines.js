@@ -17,6 +17,11 @@ const medicineSchema = mongoose.Schema(
             required : true,
             default: "COMMON"
         },
+        image: {
+            type: String,
+            default: ""
+        },
+
         drugSchedule: {
             type: String,
             enum: ["OTC", "H", "H1", "X"],
@@ -40,7 +45,7 @@ const medicineSchema = mongoose.Schema(
         pharmacy : {
             type : mongoose.Schema.Types.ObjectId,
             ref : "Pharmacy",
-            required : true,
+            // required : true,
         },
         stock : {
             type : Number,
