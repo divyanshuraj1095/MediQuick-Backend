@@ -2,20 +2,20 @@ const User = require("../models/User");
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
 
-exports.registerUser = async(req, res) =>{
+exports.registerUser = async (req, res) => {
     try {
-        const {name, email, password, role} = req.body;
-        if(!name || !email || !password){
+        const { name, email, password, role } = req.body;
+        if (!name || !email || !password) {
             return res.status(400).json({
-                success : false,
-                message : "All fields are required !!",
+                success: false,
+                message: "All fields are required !!",
             });
         }
-        const existingUser = await User.findOne({email});
-        if(existingUser){
+        const existingUser = await User.findOne({ email });
+        if (existingUser) {
             return res.status(400).json({
-                success : false,
-                message : "User already exists",
+                success: false,
+                message: "User already exists",
             });
         }
         // const salt = await bcrypt.genSalt(10);
@@ -23,86 +23,131 @@ exports.registerUser = async(req, res) =>{
 
         const user = await User.create({
             name,
-            email, 
+            email,
             password,
             role,
         });
 
         const token = jwt.sign(
-            {id : user._id, role : user.role},
+            { id: user._id, role: user.role },
             process.env.JWT_SECRET,
-            {expiresIn : "7d"}
+            { expiresIn: "7d" }
         );
         res.status(201).json({
-            success : true,
-            message : "User Registered Successfully !!",
+            success: true,
+            message: "User Registered Successfully !!",
             token,
-            user : {
-                id : user._id,
-                name : user.name,
-                email : user.email,
-                role : user.role,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
             },
         });
-    }catch(error){
+    } catch (error) {
         res.status(500).json({
-            success : false,
-            message : "Registration failed !!",
-            error : error.message,
+            success: false,
+            message: "Registration failed !!",
+            error: error.message,
         });
     }
 };
 
-exports.loginUser = async(req, res) =>{
+exports.loginUser = async (req, res) => {
     try {
-        const {email, password} = req.body
-        if(!email || !password){
+        const { email, password } = req.body
+        if (!email || !password) {
             return res.status(400).json({
-                success : false,
-                message : "Email and password are required !!",
+                success: false,
+                message: "Email and password are required !!",
             });
         }
-        const user = await User.findOne({email}).select('+password');
-        if(!user){
-          return res.status(400).json({
-            success : false,
-            message : "Invalid email or password",
-          });
+        const user = await User.findOne({ email }).select('+password');
+        if (!user) {
+            return res.status(400).json({
+                success: false,
+                message: "Invalid email or password",
+            });
         }
         console.log("LOGIN password:", password);
         console.log("HASH from DB:", user.password);
 
         const isMatch = await bcrypt.compare(password, user.password);
-        if(!isMatch){
+        if (!isMatch) {
             return res.status(400).json({
-                success : false,
-                message : "Invaild email or password",
+                success: false,
+                message: "Invaild email or password",
             });
         }
 
         const token = jwt.sign(
-            {id : user._id, role : user.role},
+            { id: user._id, role: user.role },
             process.env.JWT_SECRET,
-            {expiresIn : "7d"}
+            { expiresIn: "7d" }
         );
 
         res.status(200).json({
-            success : true,
-            message : "Loggin successful",
+            success: true,
+            message: "Loggin successful",
             token,
-            user : {
-                id : user._id,
-                name : user.name,
-                email : user.email,
-                role : user.role,
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
             },
         });
-            
-    }catch(error){
+
+    } catch (error) {
         res.status(500).json({
-            success : false,
-            message : "Loggin failed",
-            error : error.message,
+            success: false,
+            message: "Loggin failed",
+            error: error.message,
+        });
+    }
+};
+
+exports.updateAddress = async (req, res) => {
+    try {
+        const { address } = req.body;
+
+        if (!address) {
+            return res.status(400).json({
+                success: false,
+                message: "Address is required",
+            });
+        }
+
+        // req.user is set by the protect middleware
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { address },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Address updated successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                address: user.address,
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to update address",
+            error: error.message,
         });
     }
 };

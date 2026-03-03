@@ -21,6 +21,30 @@ exports.getAllMedicines = async (req, res) =>{
     }
 };
 
+exports.getMedicineById = async (req, res) => {
+    try {
+        const medicine = await Medicine.findById(req.params.id);
+        
+        if (!medicine) {
+            return res.status(404).json({
+                success: false,
+                message: "Medicine not found"
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            medicine
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch medicine details",
+            error: error.message
+        });
+    }
+};
+
 exports.searchMedicines = async (req, res) =>{
     try {
         const {keyword} = req.query;
