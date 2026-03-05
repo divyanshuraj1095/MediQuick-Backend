@@ -43,11 +43,6 @@ const godownSchema = new mongoose.Schema(
     contactNumber: {
       type: String,
     },
-    location: {
-      lat: Number,
-      lng: Number,
-    },
-    pincodes: [String]
 
   },
   { timestamps: true }

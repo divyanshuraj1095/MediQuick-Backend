@@ -20,6 +20,7 @@ app.use("/api/cart", require("./routes/cart"));
 app.use("/api/godown", require("./routes/godown.js"));
 app.use("/api/advisor", require("./routes/advisor.js"));
 app.use("/api/simple-order", require("./routes/simpleOrder.js"));
+app.use("/api/admin", require("./routes/admin.js"));
 
 
 

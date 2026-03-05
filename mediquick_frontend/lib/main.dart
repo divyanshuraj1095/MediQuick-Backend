@@ -13,6 +13,9 @@ import 'screens/prescription_history_screen.dart';
 import 'screens/local_advisor_screen.dart';
 import 'services/cart_service.dart';
 import 'widgets/auth_guard.dart';
+import 'screens/admin/pages/admin_login_screen.dart';
+import 'screens/admin/pages/admin_dashboard_screen.dart';
+import 'screens/admin/admin_auth_guard.dart';
 
 void main() {
   runApp(
@@ -55,6 +58,11 @@ class MediQuickApp extends StatelessWidget {
             const AuthGuard(child: PrescriptionHistoryScreen()),
         '/local-advisor': (context) =>
             const AuthGuard(child: LocalAdvisorScreen()),
+
+        // ── Admin routes ──
+        '/admin/login': (context) => const AdminLoginScreen(),
+        '/admin/dashboard': (context) =>
+            const AdminAuthGuard(child: AdminDashboardScreen()),
       },
     );
   }

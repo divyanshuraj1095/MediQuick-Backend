@@ -10,4 +10,12 @@ class Config {
   static const String simpleMyOrdersUrl = '$apiUrl/simple-order/myorders';
   static const String medicineSearchUrl = '$apiUrl/medicine/search';
   static String medicineDetailsUrl(String id) => '$apiUrl/medicine/$id';
+
+  // Admin
+  static const String adminLoginUrl = '$apiUrl/auth/admin-login';
+  static const String adminStatsUrl = '$apiUrl/admin/stats';
+  static const String adminUsersUrl = '$apiUrl/admin/users';
+  static const String adminGodownsUrl = '$apiUrl/admin/godowns';
+  static String adminGodownUrl(String id) => '$apiUrl/admin/godowns/$id';
 }
+
