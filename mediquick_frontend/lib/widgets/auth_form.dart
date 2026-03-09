@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
-import '../screens/admin/services/admin_auth_service.dart';
+
 
 class AuthForm extends StatefulWidget {
   final bool isSignIn;
@@ -69,20 +69,6 @@ class _AuthFormState extends State<AuthForm> {
         ),
       );
 
-      final user = result['user'];
-      final role = user != null ? user['role'] : 'user';
-
-      if (role == 'admin' && widget.isSignIn) {
-        // Authenticate properly as admin behind the scenes to get the admin token
-        final adminResult = await AdminAuthService.adminLogin(
-          _emailController.text.trim(),
-          _passwordController.text,
-        );
-        if (adminResult['success'] == true && mounted) {
-           Navigator.pushNamedAndRemoveUntil(context, '/admin/dashboard', (_) => false);
-           return;
-        }
-      }
 
       widget.onAuthSuccess?.call();
     } else {

@@ -76,17 +76,31 @@ class _LandingPageState extends State<LandingPage> {
                         ),
                       ],
                     ),
-                    ElevatedButton(
-                      onPressed: () => Navigator.pushNamed(context, '/home'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryGreen,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
+                    Row(
+                      children: [
+                        TextButton.icon(
+                          onPressed: () => Navigator.pushNamed(context, '/admin/login'),
+                          icon: const Icon(Icons.admin_panel_settings, size: 18),
+                          label: const Text('Admin Login', style: TextStyle(fontWeight: FontWeight.bold)),
+                          style: TextButton.styleFrom(
+                            foregroundColor: AppTheme.primaryGreen,
+                            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          ),
                         ),
-                      ),
-                      child: const Text('Shop Now'),
+                        const SizedBox(width: 16),
+                        ElevatedButton(
+                          onPressed: () => Navigator.pushNamed(context, '/home'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: AppTheme.primaryGreen,
+                            foregroundColor: Colors.white,
+                            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                          ),
+                          child: const Text('Shop Now'),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -259,17 +273,30 @@ class _LandingPageState extends State<LandingPage> {
                   ),
                 ],
               ),
-              ElevatedButton(
-                onPressed: () => Navigator.pushNamed(context, '/home'),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryGreen,
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+              Row(
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pushNamed(context, '/admin/login'),
+                    style: TextButton.styleFrom(
+                      foregroundColor: AppTheme.primaryGreen,
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 10),
+                    ),
+                    child: const Text('Admin', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
                   ),
-                ),
-                child: const Text('Shop Now'),
+                  const SizedBox(width: 6),
+                  ElevatedButton(
+                    onPressed: () => Navigator.pushNamed(context, '/home'),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppTheme.primaryGreen,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                    ),
+                    child: const Text('Shop Now', style: TextStyle(fontSize: 13)),
+                  ),
+                ],
               ),
             ],
           ),

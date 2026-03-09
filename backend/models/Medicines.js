@@ -21,6 +21,22 @@ const medicineSchema = mongoose.Schema(
             type: String,
             default: ""
         },
+        type: {
+          type: String,
+           enum: [
+           "PAINKILLER",
+           "ANTIBIOTIC",
+           "ANTACID",
+           "ANTIVIRAL",
+           "ANTIFUNGAL",
+            "VITAMIN",
+           "ANTIHISTAMINE",
+           "DIABETES",
+           "BLOOD_PRESSURE",
+           "OTHER"
+    ],
+    default: "OTHER"
+},
 
         drugSchedule: {
             type: String,
