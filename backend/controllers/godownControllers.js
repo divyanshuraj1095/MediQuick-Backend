@@ -1,4 +1,5 @@
 const Godown = require("../models/Godown");
+const GodownInventory = require("../models/GodownInventory");
 
 
 // ================= CREATE GODOWN =================
@@ -132,6 +133,28 @@ exports.deleteGodown = async (req, res) => {
         res.status(500).json({
             success: false,
             message: "Failed to delete godown",
+            error: error.message
+        });
+    }
+};
+
+// ================= GET GODOWN INVENTORY =================
+exports.getGodownInventory = async (req, res) => {
+    try {
+        const inventory = await GodownInventory.find({ godown: req.params.id })
+            .populate("product")
+            .sort({ stock: 1 }); // lowest stock first
+
+        res.status(200).json({
+            success: true,
+            count: inventory.length,
+            inventory
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to fetch godown inventory",
             error: error.message
         });
     }

@@ -151,6 +151,52 @@ exports.updateAddress = async (req, res) => {
     }
 };
 
+exports.updateLocation = async (req, res) => {
+    try {
+        const { lat, lng } = req.body;
+
+        if (typeof lat !== 'number' || typeof lng !== 'number') {
+            return res.status(400).json({
+                success: false,
+                message: "Valid latitude and longitude numbers are required",
+            });
+        }
+
+        // req.user is set by the protect middleware
+        const user = await User.findByIdAndUpdate(
+            req.user._id,
+            { location: { lat, lng } },
+            { new: true, runValidators: true }
+        ).select('-password');
+
+        if (!user) {
+            return res.status(404).json({
+                success: false,
+                message: "User not found",
+            });
+        }
+
+        res.status(200).json({
+            success: true,
+            message: "Location mapped successfully",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                address: user.address,
+                location: user.location,
+            }
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: "Failed to update location",
+            error: error.message,
+        });
+    }
+};
+
 exports.adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;

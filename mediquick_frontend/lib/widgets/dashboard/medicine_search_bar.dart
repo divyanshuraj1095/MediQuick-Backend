@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../../config.dart';
 import '../../theme/app_theme.dart';
+import '../../services/auth_service.dart';
 
 // ─── Data Model ─────────────────────────────────────────────────────────────
 
@@ -13,6 +14,7 @@ class MedicineResult {
   final double price;
   final String image;
   final String category;
+  final String type;
   final bool prescriptionRequired;
 
   const MedicineResult({
@@ -21,6 +23,7 @@ class MedicineResult {
     required this.price,
     required this.image,
     required this.category,
+    required this.type,
     required this.prescriptionRequired,
   });
 
@@ -31,6 +34,7 @@ class MedicineResult {
       price: ((json['price'] ?? 0) as num).toDouble(),
       image: (json['image'] ?? '').toString(),
       category: (json['category'] ?? 'COMMON').toString(),
+      type: (json['type'] ?? 'OTHER').toString(),
       prescriptionRequired: (json['prescriptionRequired'] ?? false) == true,
     );
   }
@@ -62,26 +66,41 @@ class MedicineResult {
 // ─── Search Service ──────────────────────────────────────────────────────────
 
 class _MedicineSearchService {
-  static Future<List<MedicineResult>> search(String keyword) async {
-    if (keyword.trim().isEmpty) return [];
+  static Future<Map<String, dynamic>> search(String keyword) async {
+    if (keyword.trim().isEmpty) return {'success': false, 'medicines': []};
+
     try {
-      final uri = Uri.parse(Config.medicineSearchUrl)
-          .replace(queryParameters: {'keyword': keyword.trim()});
+      final user = await AuthService.getUser();
+      final queryParams = {'keyword': keyword.trim()};
+      
+      if (user != null && user['location'] != null && user['location']['lat'] != null) {
+        queryParams['lat'] = user['location']['lat'].toString();
+        queryParams['lng'] = user['location']['lng'].toString();
+      }
+
+      final uri = Uri.parse(Config.medicineSearchUrl).replace(queryParameters: queryParams);
       final response = await http
           .get(uri, headers: {'Content-Type': 'application/json'})
           .timeout(const Duration(seconds: 8));
 
-      if (response.statusCode != 200) return [];
+      if (response.statusCode != 200) return {'success': false, 'medicines': []};
       final data = jsonDecode(response.body) as Map<String, dynamic>;
-      if (data['success'] != true) return [];
+      
+      if (data['noService'] == true) {
+        return {'success': false, 'noService': true, 'medicines': []};
+      }
+      
+      if (data['success'] != true) return {'success': false, 'medicines': []};
 
       final list = (data['medicines'] as List<dynamic>?) ?? [];
-      return list
+      final parsed = list
           .take(12)
           .map((m) => MedicineResult.fromJson(m as Map<String, dynamic>))
           .toList();
+          
+      return {'success': true, 'medicines': parsed};
     } catch (_) {
-      return [];
+      return {'success': false, 'medicines': []};
     }
   }
 }
@@ -108,6 +127,7 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
   List<MedicineResult> _results = [];
   bool _isLoading = false;
   bool _hasError = false;
+  bool _noService = false;
   bool _showDropdown = false;
 
   @override
@@ -130,25 +150,32 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
         _results = [];
         _isLoading = false;
         _hasError = false;
+        _noService = false;
       });
       _hideDropdown();
       return;
     }
-    _debounce = Timer(const Duration(milliseconds: 350), () => _doSearch(value));
+    _debounce = Timer(const Duration(milliseconds: 350), () => _doSearch(_controller.text));
   }
 
   Future<void> _doSearch(String keyword) async {
     setState(() {
       _isLoading = true;
       _hasError = false;
+      _noService = false;
     });
     _showDropdownOverlay();
 
     try {
-      final results = await _MedicineSearchService.search(keyword);
+      final response = await _MedicineSearchService.search(keyword);
       if (!mounted) return;
       setState(() {
-        _results = results;
+        if (response['noService'] == true) {
+          _noService = true;
+          _results = [];
+        } else {
+          _results = response['medicines'] ?? [];
+        }
         _isLoading = false;
       });
       _updateOverlay();
@@ -199,6 +226,7 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
             child: _DropdownContent(
               isLoading: _isLoading,
               hasError: _hasError,
+              noService: _noService,
               results: _results,
               query: _controller.text,
               onSelect: (med) {
@@ -227,10 +255,13 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
 
   @override
   Widget build(BuildContext context) {
-    return CompositedTransformTarget(
-      link: _layerLink,
-      child: Container(
-        height: 44,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        CompositedTransformTarget(
+          link: _layerLink,
+          child: Container(
+            height: 44,
         decoration: BoxDecoration(
           color: AppTheme.backgroundGray,
           borderRadius: BorderRadius.circular(12),
@@ -295,11 +326,13 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
                 padding: EdgeInsets.zero,
                 constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
               )
-            else
-              const SizedBox(width: 12),
-          ],
+                else
+                  const SizedBox(width: 12),
+              ],
+            ),
+          ),
         ),
-      ),
+      ],
     );
   }
 }
@@ -309,6 +342,7 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
 class _DropdownContent extends StatelessWidget {
   final bool isLoading;
   final bool hasError;
+  final bool noService;
   final List<MedicineResult> results;
   final String query;
   final ValueChanged<MedicineResult> onSelect;
@@ -316,6 +350,7 @@ class _DropdownContent extends StatelessWidget {
   const _DropdownContent({
     required this.isLoading,
     required this.hasError,
+    this.noService = false,
     required this.results,
     required this.query,
     required this.onSelect,
@@ -355,6 +390,22 @@ class _DropdownContent extends StatelessWidget {
             Text(
               'Could not connect to server',
               style: TextStyle(color: Colors.red, fontSize: 14),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (noService) {
+      return const Padding(
+        padding: EdgeInsets.all(24),
+        child: Row(
+          children: [
+            Icon(Icons.location_off_outlined, color: Colors.red, size: 20),
+            SizedBox(width: 8),
+            Text(
+              'No service Available for your location',
+              style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
             ),
           ],
         ),

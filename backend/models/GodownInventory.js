@@ -11,7 +11,7 @@ const godownInventorySchema = new mongoose.Schema(
 
     product: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "Product", // or Medicine (based on your repo)
+      ref: "Medicine",
       required: true,
       index: true,
     },

@@ -170,6 +170,40 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     }
   }
 
+  Future<void> _addGodown(Map<String, dynamic> godownData) async {
+    final token = await _token;
+    final res = await http.post(
+      Uri.parse(Config.adminGodownsUrl),
+      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      body: jsonEncode(godownData),
+    );
+    if (!mounted) return;
+    if (res.statusCode == 201) {
+      final newGodown = _GodownData.fromJson(jsonDecode(res.body)['godown']);
+      setState(() {
+        _godowns.insert(0, newGodown);
+      });
+      _showSnack('Godown added successfully', isError: false);
+    } else {
+      _showSnack('Failed to add godown', isError: true);
+    }
+  }
+
+  Future<void> _addMedicine(Map<String, dynamic> medicineData) async {
+    final token = await _token;
+    final res = await http.post(
+      Uri.parse(Config.addMedicineUrl),
+      headers: {'Authorization': 'Bearer $token', 'Content-Type': 'application/json'},
+      body: jsonEncode(medicineData),
+    );
+    if (!mounted) return;
+    if (res.statusCode == 201) {
+      _showSnack('Medicine added successfully', isError: false);
+    } else {
+      _showSnack('Failed to add medicine', isError: true);
+    }
+  }
+
   void _showSnack(String msg, {required bool isError}) {
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(
       content: Text(msg),
@@ -301,6 +335,227 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  void _showAddGodownDialog() {
+    final nameCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final contactCtrl = TextEditingController();
+    final latCtrl = TextEditingController();
+    final lngCtrl = TextEditingController();
+    bool isActive = true;
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.add_location_alt_rounded,
+                  color: AppTheme.primaryGreen, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Add Godown', style: TextStyle(fontSize: 18)),
+          ]),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  _dialogField('Name *', nameCtrl, Icons.store_rounded),
+                  const SizedBox(height: 14),
+                  _dialogField('Address', addressCtrl, Icons.location_on_outlined, maxLines: 2),
+                  const SizedBox(height: 14),
+                  _dialogField('Contact Number', contactCtrl, Icons.phone_outlined),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(child: _dialogField('Latitude *', latCtrl, Icons.map)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _dialogField('Longitude *', lngCtrl, Icons.map)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      const Text('Active', style: TextStyle(fontWeight: FontWeight.w500)),
+                      const Spacer(),
+                      Switch(
+                        value: isActive,
+                        activeColor: AppTheme.primaryGreen,
+                        onChanged: (v) => setDialogState(() => isActive = v),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty) {
+                  _showSnack('Name is required', isError: true);
+                  return;
+                }
+                Navigator.pop(context);
+                
+                final gdData = <String, dynamic>{
+                  'name': nameCtrl.text.trim(),
+                  'address': addressCtrl.text.trim(),
+                  'contactNumber': contactCtrl.text.trim(),
+                  'isActive': isActive,
+                };
+                
+                final lat = double.tryParse(latCtrl.text);
+                final lng = double.tryParse(lngCtrl.text);
+                if (lat != null && lng != null) {
+                  gdData['location'] = {
+                    'type': 'Point',
+                    'coordinates': [lng, lat]
+                  };
+                } else {
+                  _showSnack('Valid Latitude and Longitude are required', isError: true);
+                  return;
+                }
+                
+                _addGodown(gdData);
+              },
+              child: const Text('Add Godown'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showAddMedicineDialog() {
+    final nameCtrl = TextEditingController();
+    final descriptionCtrl = TextEditingController();
+    final priceCtrl = TextEditingController();
+    final amountCtrl = TextEditingController(); // stock
+    final manufacturerCtrl = TextEditingController();
+    String selectedCategory = 'COMMON';
+    String? selectedGodownId;
+    
+    // Default categories
+    final List<String> categories = ['COMMON', 'PRESCRIPTION'];
+
+    showDialog(
+      context: context,
+      builder: (_) => StatefulBuilder(
+        builder: (ctx, setDialogState) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(children: [
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryGreen.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: const Icon(Icons.medication_rounded,
+                  color: AppTheme.primaryGreen, size: 20),
+            ),
+            const SizedBox(width: 10),
+            const Text('Add Medicine', style: TextStyle(fontSize: 18)),
+          ]),
+          content: SizedBox(
+            width: 400,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  _dialogField('Medicine Name *', nameCtrl, Icons.vaccines),
+                  const SizedBox(height: 14),
+                  _dialogField('Description', descriptionCtrl, Icons.description, maxLines: 2),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(child: _dialogField('Price *', priceCtrl, Icons.currency_rupee)),
+                      const SizedBox(width: 10),
+                      Expanded(child: _dialogField('Amount (Stock) *', amountCtrl, Icons.inventory_2)),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+                  _dialogField('Manufacturer', manufacturerCtrl, Icons.precision_manufacturing),
+                  const SizedBox(height: 14),
+                  const Text('Category', style: TextStyle(fontSize: 12, color: AppTheme.textGray)),
+                  DropdownButton<String>(
+                    value: selectedCategory,
+                    isExpanded: true,
+                    items: categories.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedCategory = v);
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  const Text('Godown Location', style: TextStyle(fontSize: 12, color: AppTheme.textGray)),
+                  DropdownButton<String>(
+                    value: selectedGodownId,
+                    hint: const Text('Select a Godown (Optional)'),
+                    isExpanded: true,
+                    items: [
+                      const DropdownMenuItem<String>(value: null, child: Text('None')),
+                      ..._godowns.map((g) => DropdownMenuItem(value: g.id, child: Text(g.name)))
+                    ],
+                    onChanged: (v) {
+                      setDialogState(() => selectedGodownId = v);
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.primaryGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
+              onPressed: () {
+                if (nameCtrl.text.trim().isEmpty || priceCtrl.text.trim().isEmpty || amountCtrl.text.trim().isEmpty) {
+                  _showSnack('Name, Price, and Amount are required', isError: true);
+                  return;
+                }
+                Navigator.pop(context);
+                
+                final medData = <String, dynamic>{
+                  'name': nameCtrl.text.trim(),
+                  'description': descriptionCtrl.text.trim(),
+                  'price': double.tryParse(priceCtrl.text) ?? 0,
+                  'stock': int.tryParse(amountCtrl.text) ?? 0,
+                  'manufacturer': manufacturerCtrl.text.trim(),
+                  'category': selectedCategory,
+                };
+                
+                if (selectedGodownId != null) {
+                  medData['godownId'] = selectedGodownId;
+                }
+                
+                _addMedicine(medData);
+              },
+              child: const Text('Add Medicine'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _dialogField(String label, TextEditingController ctrl, IconData icon,
       {int maxLines = 1}) {
     return TextFormField(
@@ -326,7 +581,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       backgroundColor: AppTheme.dashboardBg,
       body: Row(
         children: [
-          const AdminSidebar(activePage: 'dashboard'),
+          AdminSidebar(
+            activePage: 'dashboard',
+            onAddGodownsTap: _showAddGodownDialog,
+            onAddMedicinesTap: _showAddMedicineDialog,
+          ),
           Expanded(
             child: Column(
               children: [
@@ -337,6 +596,120 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showGodownInventoryDialog(_GodownData godown) async {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const Center(child: CircularProgressIndicator()),
+    );
+
+    try {
+      final token = await _token;
+      final res = await http.get(
+        Uri.parse(Config.adminGodownInventoryUrl(godown.id)),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      if (!mounted) return;
+      Navigator.pop(context); // pop loading
+
+      if (res.statusCode == 200) {
+        final invList = jsonDecode(res.body)['inventory'] as List;
+        _showInventoryModal(godown, invList);
+      } else {
+        _showSnack('Failed to load inventory', isError: true);
+      }
+    } catch (_) {
+      if (mounted) Navigator.pop(context);
+      _showSnack('Network error', isError: true);
+    }
+  }
+
+  void _showInventoryModal(_GodownData godown, List inventory) {
+    bool hasLowStock = inventory.any((item) {
+      final stock = item['stock'] ?? 0;
+      final reorderLevel = item['reorderLevel'] ?? 10;
+      return stock <= reorderLevel;
+    });
+
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(children: [
+          const Icon(Icons.inventory_2_outlined, color: AppTheme.primaryGreen),
+          const SizedBox(width: 10),
+          Expanded(child: Text('${godown.name} - Inventory', style: const TextStyle(fontSize: 18))),
+          IconButton(onPressed: () => Navigator.pop(context), icon: const Icon(Icons.close)),
+        ]),
+        content: SizedBox(
+          width: 500,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (hasLowStock)
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  margin: const EdgeInsets.only(bottom: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFEF2F2),
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFFFECACA)),
+                  ),
+                  child: const Row(
+                    children: [
+                      Icon(Icons.warning_amber_rounded, color: Color(0xFFDC2626), size: 20),
+                      SizedBox(width: 8),
+                      Text(
+                        'Medicine is getting out of stock!',
+                        style: TextStyle(color: Color(0xFFDC2626), fontWeight: FontWeight.bold),
+                      ),
+                    ],
+                  ),
+                ),
+              if (inventory.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(32),
+                  child: Center(
+                    child: Text('No medicines found in this godown', style: TextStyle(color: AppTheme.textGray)),
+                  ),
+                )
+              else
+                Flexible(
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: inventory.length,
+                    separatorBuilder: (_, __) => const Divider(),
+                    itemBuilder: (ctx, i) {
+                      final item = inventory[i];
+                      final med = item['product'] ?? {};
+                      final name = med['name'] ?? 'Unknown Medicine';
+                      final stock = item['stock'] ?? 0;
+                      final reorderLevel = item['reorderLevel'] ?? 10;
+                      final isLowStock = stock <= reorderLevel;
+
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        title: Text(name, style: TextStyle(
+                          color: isLowStock ? const Color(0xFFDC2626) : AppTheme.textDark,
+                          fontWeight: isLowStock ? FontWeight.bold : FontWeight.w500,
+                        )),
+                        trailing: Text('Stock: $stock', style: TextStyle(
+                          color: isLowStock ? const Color(0xFFDC2626) : AppTheme.textGray,
+                          fontWeight: isLowStock ? FontWeight.bold : FontWeight.normal,
+                          fontSize: 14,
+                        )),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -482,6 +855,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   godown: _godowns[i],
                   onEdit: () => _showEditDialog(_godowns[i]),
                   onDelete: () => _showDeleteDialog(_godowns[i]),
+                  onTap: () => _showGodownInventoryDialog(_godowns[i]),
                 ),
               ),
           ],
@@ -497,11 +871,13 @@ class _GodownLocationCard extends StatelessWidget {
   final _GodownData godown;
   final VoidCallback onEdit;
   final VoidCallback onDelete;
+  final VoidCallback? onTap;
 
   const _GodownLocationCard({
     required this.godown,
     required this.onEdit,
     required this.onDelete,
+    this.onTap,
   });
 
   Future<void> _openMap(BuildContext context) async {
@@ -532,10 +908,13 @@ class _GodownLocationCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
         border: Border.all(color: AppTheme.borderGray),
         boxShadow: [
           BoxShadow(
@@ -792,7 +1171,7 @@ class _GodownLocationCard extends StatelessWidget {
           ),
         ],
       ),
-    );
+    ));
   }
 }
 

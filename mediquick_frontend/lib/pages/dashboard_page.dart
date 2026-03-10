@@ -11,6 +11,8 @@ import '../widgets/dashboard/recent_orders_card.dart';
 import '../widgets/dashboard/cart_drawer.dart';
 import '../widgets/dashboard/medicine_search_bar.dart';
 import '../widgets/dashboard/cart_bottom_bar.dart';
+import 'package:geolocator/geolocator.dart';
+
 class DashboardPage extends StatefulWidget {
   const DashboardPage({super.key});
 
@@ -200,10 +202,14 @@ class _TopHeaderState extends State<_TopHeader> {
 
   Future<void> _loadAddress() async {
     final user = await AuthService.getUser();
-    if (user != null && user['address'] != null && user['address'].toString().isNotEmpty) {
+    if (user != null) {
       if (mounted) {
         setState(() {
-          _address = user['address'];
+          if (user['location'] != null && user['location']['lat'] != null) {
+            _address = '${user['location']['lat'].toStringAsFixed(4)}, ${user['location']['lng'].toStringAsFixed(4)}';
+          } else if (user['address'] != null && user['address'].toString().isNotEmpty) {
+            _address = user['address'];
+          }
         });
       }
     }
@@ -262,6 +268,58 @@ class _TopHeaderState extends State<_TopHeader> {
     );
   }
 
+  Future<void> _handleCurrentLocation() async {
+    if (!mounted) return;
+    setState(() => _isLoadingAddress = true);
+
+    try {
+      bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        throw Exception('Location mapping services are disabled.');
+      }
+
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          throw Exception('Location permissions are denied');
+        }
+      }
+
+      if (permission == LocationPermission.deniedForever) {
+        throw Exception('Location permissions are permanently denied, we cannot request permissions.');
+      }
+
+      // Permissions granted, get coords
+      Position position = await Geolocator.getCurrentPosition(desiredAccuracy: LocationAccuracy.high);
+
+      // Send to Auth API
+      final res = await AuthService.updateLocation(position.latitude, position.longitude);
+      
+      if (!mounted) return;
+      if (res['success'] == true) {
+        setState(() {
+          _address = '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('GPS Location updated successfully'), backgroundColor: AppTheme.dashboardGreen),
+        );
+      } else {
+        throw Exception(res['message'] ?? 'Failed to update GPS location securely');
+      }
+
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(e.toString().replaceAll('Exception: ', '')), backgroundColor: Colors.red),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoadingAddress = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     // Truncate address for display if too long
@@ -308,10 +366,7 @@ class _TopHeaderState extends State<_TopHeader> {
               if (value == 'manual') {
                 _showManualAddressDialog();
               } else if (value == 'current') {
-                // Future enhancement: Fetch from GPS
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('GPS Location feature coming soon! Please set manually.')),
-                );
+                _handleCurrentLocation();
               }
             },
             shape: RoundedRectangleBorder(

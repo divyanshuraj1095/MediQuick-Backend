@@ -93,6 +93,39 @@ class AuthService {
     }
   }
 
+  static Future<Map<String, dynamic>> updateLocation(double lat, double lng) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return {'success': false, 'message': 'User not authenticated'};
+      }
+
+      final response = await http.put(
+        Uri.parse(Config.updateLocationUrl),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'lat': lat, 'lng': lng}),
+      );
+      
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && data['success'] == true) {
+        // Update local user cache
+        final currentUser = await getUser();
+        if (currentUser != null) {
+          currentUser['location'] = data['user']['location'];
+          await _saveAuthData(token, currentUser);
+        }
+        return data;
+      }
+      return {'success': false, 'message': data['message'] ?? 'Failed to map location'};
+    } catch (e) {
+      return {'success': false, 'message': 'Network error'};
+    }
+  }
+
   static Future<String?> getToken() async {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getString(_tokenKey);

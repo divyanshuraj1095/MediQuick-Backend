@@ -4,8 +4,15 @@ import '../../../theme/app_theme.dart';
 
 class AdminSidebar extends StatefulWidget {
   final String activePage;
+  final VoidCallback? onAddGodownsTap;
+  final VoidCallback? onAddMedicinesTap;
 
-  const AdminSidebar({super.key, this.activePage = 'dashboard'});
+  const AdminSidebar({
+    super.key, 
+    this.activePage = 'dashboard',
+    this.onAddGodownsTap,
+    this.onAddMedicinesTap,
+  });
 
   @override
   State<AdminSidebar> createState() => _AdminSidebarState();
@@ -93,13 +100,13 @@ class _AdminSidebarState extends State<AdminSidebar> {
             icon: Icons.warehouse_outlined,
             label: 'Add Godowns',
             isActive: widget.activePage == 'add_godowns',
-            onTap: () {},
+            onTap: widget.onAddGodownsTap ?? () {},
           ),
           _NavTile(
             icon: Icons.medication_outlined,
             label: 'Add Medicines',
             isActive: widget.activePage == 'add_medicines',
-            onTap: () {},
+            onTap: widget.onAddMedicinesTap ?? () {},
           ),
           
           const Spacer(),
