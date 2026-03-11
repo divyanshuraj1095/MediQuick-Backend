@@ -464,6 +464,123 @@ class _StatCardsRow extends StatelessWidget {
 
   const _StatCardsRow({required this.data});
 
+  void _showMonthlyHistoryDialog(BuildContext context) {
+    final history = data.monthlyHistory;
+    // Sort months descending (most recent first)
+    final sortedKeys = history.keys.toList()
+      ..sort((a, b) {
+        // Parse 'Jan 2025' style labels for comparison
+        final months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+            'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        final aParts = a.split(' ');
+        final bParts = b.split(' ');
+        final aYear = int.tryParse(aParts.length > 1 ? aParts[1] : '0') ?? 0;
+        final bYear = int.tryParse(bParts.length > 1 ? bParts[1] : '0') ?? 0;
+        final aMonth = months.indexOf(aParts[0]);
+        final bMonth = months.indexOf(bParts[0]);
+        if (aYear != bYear) return bYear.compareTo(aYear);
+        return bMonth.compareTo(aMonth);
+      });
+
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: AppTheme.dashboardGreen.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.bar_chart_rounded, color: AppTheme.dashboardGreen, size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  const Expanded(
+                    child: Text('Monthly Spending History',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18, color: AppTheme.textDark)),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(ctx),
+                    icon: const Icon(Icons.close, color: AppTheme.textGray),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              const Text('Tap a month to see how much you spent',
+                  style: TextStyle(fontSize: 12, color: AppTheme.textGray)),
+              const SizedBox(height: 20),
+              if (sortedKeys.isEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Center(child: Text('No spending history yet', style: TextStyle(color: AppTheme.textGray))),
+                )
+              else
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxHeight: 300),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    itemCount: sortedKeys.length,
+                    separatorBuilder: (_, __) => const Divider(height: 1),
+                    itemBuilder: (_, i) {
+                      final key = sortedKeys[i];
+                      final amount = history[key]!;
+                      final isCurrentMonth = key == '${["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"][DateTime.now().month - 1]} ${DateTime.now().year}';
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(key, style: TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 15,
+                                        color: isCurrentMonth ? AppTheme.dashboardGreen : AppTheme.textDark,
+                                      )),
+                                      if (isCurrentMonth) ...[                          
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: AppTheme.dashboardGreen.withOpacity(0.1),
+                                            borderRadius: BorderRadius.circular(6),
+                                          ),
+                                          child: const Text('This month', style: TextStyle(fontSize: 10, color: AppTheme.dashboardGreen, fontWeight: FontWeight.bold)),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                ],
+                              ),
+                            ),
+                            Text('₹${amount.toStringAsFixed(0)}',
+                                style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final spendingStr = '₹${data.monthlySpending.toStringAsFixed(0)}';
@@ -484,17 +601,20 @@ class _StatCardsRow extends StatelessWidget {
         value: data.mostOrdered,
         subtitle: mostOrderedSubtitle,
       ),
-      DashboardStatCard(
-        icon: Icons.currency_rupee,
-        title: 'Monthly Spending',
-        value: spendingStr,
-        subtitle: 'This month in ₹',
+      GestureDetector(
+        onTap: () => _showMonthlyHistoryDialog(context),
+        child: DashboardStatCard(
+          icon: Icons.currency_rupee,
+          title: 'Monthly Spending',
+          value: spendingStr,
+          subtitle: 'Tap to see history',
+        ),
       ),
       DashboardStatCard(
         icon: Icons.inventory_2,
         title: 'Order Status',
         value: data.totalOrders > 0 ? 'Active' : 'No Orders',
-        subtitle: 'Track your orders',
+        subtitle: 'Tap any order to track',
       ),
     ];
 

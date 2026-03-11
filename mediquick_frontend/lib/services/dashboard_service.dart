@@ -3,7 +3,31 @@ import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
 import '../config.dart';
 import '../services/auth_service.dart';
-import '../widgets/dashboard/recent_orders_card.dart';
+
+class RecentOrderItem {
+  final String name;
+  final String category;
+  final String date;
+  final String price;
+  final Color? imageColor;
+  /// Raw order id from the backend
+  final String orderId;
+  /// When the order was created (for status computation)
+  final DateTime? createdAt;
+  /// All items in the order
+  final List<Map<String, dynamic>> items;
+
+  const RecentOrderItem({
+    required this.name,
+    required this.category,
+    required this.date,
+    required this.price,
+    this.imageColor,
+    this.orderId = '',
+    this.createdAt,
+    this.items = const [],
+  });
+}
 
 /// Data class holding all computed dashboard statistics.
 class DashboardData {
@@ -13,6 +37,8 @@ class DashboardData {
   final int mostOrderedCount;
   final List<RecentOrderItem> recentOrders;
   final Map<String, int> categoryCounts;
+  /// Spending per month label e.g. { 'Jan 2025': 450.0, 'Feb 2025': 220.0 }
+  final Map<String, double> monthlyHistory;
 
   const DashboardData({
     required this.totalOrders,
@@ -21,6 +47,7 @@ class DashboardData {
     required this.mostOrderedCount,
     required this.recentOrders,
     required this.categoryCounts,
+    this.monthlyHistory = const {},
   });
 
   factory DashboardData.empty() => const DashboardData(
@@ -35,6 +62,7 @@ class DashboardData {
           'Vitamins': 0,
           'Personal Care': 0,
         },
+        monthlyHistory: {},
       );
 }
 
@@ -84,13 +112,17 @@ class DashboardService {
       // Monthly spending: sum totalAmount for orders created this calendar month.
       final now = DateTime.now();
       double monthlySpending = 0;
+      // Build monthly history map for last 6 months
+      final Map<String, double> monthlyHistory = {};
       for (final o in rawOrders) {
         final createdAt = DateTime.tryParse(o['createdAt'] ?? '');
-        if (createdAt != null &&
-            createdAt.year == now.year &&
-            createdAt.month == now.month) {
-          monthlySpending += ((o['totalAmount'] ?? 0) as num).toDouble();
+        if (createdAt == null) continue;
+        final amount = ((o['totalAmount'] ?? 0) as num).toDouble();
+        if (createdAt.year == now.year && createdAt.month == now.month) {
+          monthlySpending += amount;
         }
+        final label = '${_monthName(createdAt.month)} ${createdAt.year}';
+        monthlyHistory[label] = (monthlyHistory[label] ?? 0) + amount;
       }
 
       // Most ordered medicine by quantity across all orders.
@@ -137,9 +169,9 @@ class DashboardService {
 
       for (int i = 0; i < recentRaw.length; i++) {
         final o = recentRaw[i];
-        final items = (o['items'] as List<dynamic>?) ?? [];
-        final firstMed = items.isNotEmpty
-            ? (items[0]['name'] ?? 'Medicine') as String  // SimpleOrder uses flat name
+        final rawItems = (o['items'] as List<dynamic>?) ?? [];
+        final firstMed = rawItems.isNotEmpty
+            ? (rawItems[0]['name'] ?? 'Medicine') as String
             : 'Medicine';
         final medCategory = _classifyMedicine(firstMed);
         final totalAmt = ((o['totalAmount'] ?? 0) as num).toDouble();
@@ -148,13 +180,15 @@ class DashboardService {
             ? '${_monthName(createdAt.month)} ${createdAt.day}, ${createdAt.year}'
             : 'Unknown date';
 
-
         recentOrders.add(RecentOrderItem(
           name: firstMed,
           category: medCategory,
           date: dateStr,
           price: '₹${totalAmt.toStringAsFixed(2)}',
           imageColor: itemColors[i % itemColors.length],
+          orderId: (o['_id'] ?? '').toString(),
+          createdAt: createdAt,
+          items: rawItems.map((e) => Map<String, dynamic>.from(e as Map)).toList(),
         ));
       }
 
@@ -165,6 +199,7 @@ class DashboardService {
         mostOrderedCount: mostOrderedCount,
         recentOrders: recentOrders,
         categoryCounts: categoryCounts,
+        monthlyHistory: monthlyHistory,
       );
     } catch (_) {
       return DashboardData.empty();

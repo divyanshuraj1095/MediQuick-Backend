@@ -5,8 +5,15 @@ const GodownInventory = require("../models/GodownInventory");
 // ================= CREATE GODOWN =================
 exports.createGodown = async (req, res) => {
     try {
+        let godownData = { ...req.body };
 
-        const godown = await Godown.create(req.body);
+        // Auto-generate a unique code if not provided
+        if (!godownData.code) {
+            const count = await Godown.countDocuments();
+            godownData.code = `GD_AUTO_${count + 1}_${Date.now()}`;
+        }
+
+        const godown = await Godown.create(godownData);
 
         res.status(201).json({
             success: true,

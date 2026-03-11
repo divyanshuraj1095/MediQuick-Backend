@@ -70,27 +70,33 @@ exports.searchMedicines = async (req, res) => {
         };
 
         // --- Geographic Filter Pipeline ---
+        let finalQuery = { ...query };
+
         if (lat && lng) {
             const latitude = parseFloat(lat);
             const longitude = parseFloat(lng);
 
-            // 1. Find Godowns within 5km radius
+            // Determine search radius based on emergency mode
+            const { emergencyMode } = req.query;
+            const searchRadiusKm = (emergencyMode === 'true') ? 500 : 5;
+
+            // 1. Find Godowns within radius
             const Godown = require("../models/Godown");
             const nearbyGodowns = await Godown.find({
                 isActive: true,
                 location: {
                     $geoWithin: {
-                        $centerSphere: [[longitude, latitude], 5 / 6378.1] // 5km radius in radians
+                        $centerSphere: [[longitude, latitude], searchRadiusKm / 6378.1] // radius in radians
                     }
                 }
             });
 
-            // If no godowns nearby, immediately exit search
+            // If no godowns nearby, trigger noService
             if (!nearbyGodowns || nearbyGodowns.length === 0) {
                 return res.status(200).json({
                     success: false,
                     noService: true,
-                    message: "No service Available for your location",
+                    message: "No godowns available for your location.",
                     results: 0,
                     medicines: []
                 });
@@ -110,11 +116,24 @@ exports.searchMedicines = async (req, res) => {
             const availableMedicineIds = [...new Set(activeInventory.map(inv => inv.product.toString()))];
 
             // 3. Inject strict ID constraints onto our Medicine query
-            query._id = { $in: availableMedicineIds };
+            finalQuery._id = { $in: availableMedicineIds };
         }
         // --- End Geographic Pipeline ---
 
-        const medicines = await Medicine.find(query).populate("pharmacy", "name address");
+        const medicines = await Medicine.find(finalQuery).populate("pharmacy", "name address");
+
+        // If not in emergency mode, and we found NO medicines matching the query in the nearby godowns, 
+        // prompt the frontend to ask the user to expand the radius.
+        const { emergencyMode } = req.query;
+        if (medicines.length === 0 && emergencyMode !== 'true' && lat && lng) {
+            return res.status(200).json({
+                success: false,
+                noService: true,
+                message: "This medicine is not available within your normal delivery area.",
+                results: 0,
+                medicines: []
+            });
+        }
 
         // Only return success true if we actually have standard results or aren't blocked by noService
         res.status(200).json({

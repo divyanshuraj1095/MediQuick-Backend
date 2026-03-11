@@ -447,10 +447,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     final amountCtrl = TextEditingController(); // stock
     final manufacturerCtrl = TextEditingController();
     String selectedCategory = 'COMMON';
+    String selectedType = 'OTHER';
     String? selectedGodownId;
     
     // Default categories
     final List<String> categories = ['COMMON', 'PRESCRIPTION'];
+    // Medicine types matching the backend enum
+    final List<Map<String, String>> medicineTypes = [
+      {'value': 'PAINKILLER',    'label': 'Painkiller'},
+      {'value': 'ANTIBIOTIC',    'label': 'Antibiotic'},
+      {'value': 'ANTACID',       'label': 'Antacid'},
+      {'value': 'ANTIVIRAL',     'label': 'Antiviral'},
+      {'value': 'ANTIFUNGAL',    'label': 'Antifungal'},
+      {'value': 'VITAMIN',       'label': 'Vitamin / Supplement'},
+      {'value': 'ANTIHISTAMINE', 'label': 'Antihistamine'},
+      {'value': 'DIABETES',      'label': 'Diabetes'},
+      {'value': 'BLOOD_PRESSURE','label': 'Blood Pressure'},
+      {'value': 'OTHER',         'label': 'Other'},
+    ];
 
     showDialog(
       context: context,
@@ -501,6 +515,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     },
                   ),
                   const SizedBox(height: 14),
+                  const Text('Medicine Type', style: TextStyle(fontSize: 12, color: AppTheme.textGray)),
+                  DropdownButton<String>(
+                    value: selectedType,
+                    isExpanded: true,
+                    items: medicineTypes.map((t) => DropdownMenuItem(
+                      value: t['value'],
+                      child: Row(
+                        children: [
+                          const Icon(Icons.local_pharmacy_outlined, size: 16, color: AppTheme.primaryGreen),
+                          const SizedBox(width: 8),
+                          Text(t['label']!),
+                        ],
+                      ),
+                    )).toList(),
+                    onChanged: (v) {
+                      if (v != null) setDialogState(() => selectedType = v);
+                    },
+                  ),
+                  const SizedBox(height: 14),
                   const Text('Godown Location', style: TextStyle(fontSize: 12, color: AppTheme.textGray)),
                   DropdownButton<String>(
                     value: selectedGodownId,
@@ -540,6 +573,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   'stock': int.tryParse(amountCtrl.text) ?? 0,
                   'manufacturer': manufacturerCtrl.text.trim(),
                   'category': selectedCategory,
+                  'type': selectedType,
                 };
                 
                 if (selectedGodownId != null) {

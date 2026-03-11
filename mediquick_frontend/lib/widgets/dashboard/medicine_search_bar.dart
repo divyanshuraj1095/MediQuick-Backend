@@ -66,12 +66,16 @@ class MedicineResult {
 // ─── Search Service ──────────────────────────────────────────────────────────
 
 class _MedicineSearchService {
-  static Future<Map<String, dynamic>> search(String keyword) async {
+  static Future<Map<String, dynamic>> search(String keyword, {bool emergencyMode = false}) async {
     if (keyword.trim().isEmpty) return {'success': false, 'medicines': []};
 
     try {
       final user = await AuthService.getUser();
       final queryParams = {'keyword': keyword.trim()};
+      
+      if (emergencyMode) {
+        queryParams['emergencyMode'] = 'true';
+      }
       
       if (user != null && user['location'] != null && user['location']['lat'] != null) {
         queryParams['lat'] = user['location']['lat'].toString();
@@ -129,6 +133,7 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
   bool _hasError = false;
   bool _noService = false;
   bool _showDropdown = false;
+  bool _emergencyMode = false;
 
   @override
   void initState() {
@@ -151,6 +156,7 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
         _isLoading = false;
         _hasError = false;
         _noService = false;
+        _emergencyMode = false;
       });
       _hideDropdown();
       return;
@@ -158,16 +164,19 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
     _debounce = Timer(const Duration(milliseconds: 350), () => _doSearch(_controller.text));
   }
 
-  Future<void> _doSearch(String keyword) async {
+  Future<void> _doSearch(String keyword, {bool forceEmergencyMode = false}) async {
     setState(() {
       _isLoading = true;
       _hasError = false;
       _noService = false;
+      if (forceEmergencyMode) {
+        _emergencyMode = true;
+      }
     });
     _showDropdownOverlay();
 
     try {
-      final response = await _MedicineSearchService.search(keyword);
+      final response = await _MedicineSearchService.search(keyword, emergencyMode: _emergencyMode);
       if (!mounted) return;
       setState(() {
         if (response['noService'] == true) {
@@ -227,8 +236,12 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
               isLoading: _isLoading,
               hasError: _hasError,
               noService: _noService,
+              emergencyModeActive: _emergencyMode,
               results: _results,
               query: _controller.text,
+              onEnableEmergencyMode: () {
+                _doSearch(_controller.text, forceEmergencyMode: true);
+              },
               onSelect: (med) {
                 _controller.clear();
                 _hideDropdown();
@@ -320,7 +333,10 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
                 onPressed: () {
                   _controller.clear();
                   _hideDropdown();
-                  setState(() => _results = []);
+                  setState(() {
+                     _results = [];
+                     _emergencyMode = false;
+                  });
                 },
                 icon: const Icon(Icons.close, size: 18, color: AppTheme.textGray),
                 padding: EdgeInsets.zero,
@@ -343,16 +359,20 @@ class _DropdownContent extends StatelessWidget {
   final bool isLoading;
   final bool hasError;
   final bool noService;
+  final bool emergencyModeActive;
   final List<MedicineResult> results;
   final String query;
+  final VoidCallback onEnableEmergencyMode;
   final ValueChanged<MedicineResult> onSelect;
 
   const _DropdownContent({
     required this.isLoading,
     required this.hasError,
     this.noService = false,
+    this.emergencyModeActive = false,
     required this.results,
     required this.query,
+    required this.onEnableEmergencyMode,
     required this.onSelect,
   });
 
@@ -397,15 +417,34 @@ class _DropdownContent extends StatelessWidget {
     }
     
     if (noService) {
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Row(
+      return Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            Icon(Icons.location_off_outlined, color: Colors.red, size: 20),
-            SizedBox(width: 8),
-            Text(
-              'No service Available for your location',
-              style: TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
+            Row(
+              children: [
+                const Icon(Icons.location_off_outlined, color: Colors.orange, size: 24),
+                const SizedBox(width: 8),
+                const Expanded(
+                  child: Text(
+                    'No medicines available within your regular fast-delivery zone.',
+                    style: TextStyle(color: Colors.orange, fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton.icon(
+              onPressed: onEnableEmergencyMode,
+              icon: const Icon(Icons.emergency, color: Colors.white, size: 18),
+              label: const Text('Enable Emergency Mode (Wide Search)'),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppTheme.dashboardGreen,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+              ),
             ),
           ],
         ),
@@ -431,15 +470,38 @@ class _DropdownContent extends StatelessWidget {
       );
     }
 
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      shrinkWrap: true,
-      itemCount: results.length,
-      separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
-      itemBuilder: (context, i) => _ResultTile(
-        medicine: results[i],
-        onTap: () => onSelect(results[i]),
-      ),
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (emergencyModeActive)
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            color: Colors.orange.withOpacity(0.1),
+            child: const Row(
+              children: [
+                Icon(Icons.emergency, color: Colors.orange, size: 16),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Emergency Mode: Expanded search area. Delivery may take longer.',
+                    style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ListView.separated(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          shrinkWrap: true,
+          itemCount: results.length,
+          separatorBuilder: (_, __) => const Divider(height: 1, indent: 16, endIndent: 16),
+          itemBuilder: (context, i) => _ResultTile(
+            medicine: results[i],
+            onTap: () => onSelect(results[i]),
+          ),
+        ),
+      ],
     );
   }
 }
