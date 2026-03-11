@@ -49,8 +49,11 @@ exports.searchMedicines = async (req, res) =>{
     try {
         const {keyword} = req.query;
         const medicines = await Medicine.find({
-            name : {$regex : keyword, $options : "i"},
-            isAvailable : true,
+            $or: [
+                { name: { $regex: keyword, $options: "i" } },
+                { type: { $regex: keyword, $options: "i" } }
+            ],
+            isAvailable: true,
         }).populate("pharmacy","name address");
 
         res.status(200).json({

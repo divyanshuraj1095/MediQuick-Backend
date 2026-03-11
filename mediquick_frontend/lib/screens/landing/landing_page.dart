@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart';
 import '../../theme/app_theme.dart';
 import '../../widgets/stat_card.dart';
 import '../../widgets/feature_card.dart';
@@ -232,7 +233,7 @@ class _LandingPageState extends State<LandingPage> {
                   isSignIn: _isSignIn,
                   onTabChanged: _handleTabChange,
                   onAuthSuccess: () {
-                    Navigator.pushReplacementNamed(context, '/home');
+                    navigatorKey.currentState?.pushReplacementNamed('/dashboard');
                   },
                 ),
               ),
@@ -341,7 +342,7 @@ class _LandingPageState extends State<LandingPage> {
             isSignIn: _isSignIn,
             onTabChanged: _handleTabChange,
             onAuthSuccess: () {
-              Navigator.pushReplacementNamed(context, '/home');
+              navigatorKey.currentState?.pushReplacementNamed('/dashboard');
             },
           ),
           const SizedBox(height: 40),

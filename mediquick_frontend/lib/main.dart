@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'theme/app_theme.dart';
 import 'screens/auth/auth_gate.dart';
 import 'screens/home/home_screen.dart';
+import 'screens/landing/landing_page.dart';
 import 'pages/dashboard_page.dart';
 import 'screens/medicine_details_screen.dart';
 import 'screens/cart_screen.dart';
@@ -16,6 +17,8 @@ import 'widgets/auth_guard.dart';
 import 'screens/admin/pages/admin_login_screen.dart';
 import 'screens/admin/pages/admin_dashboard_screen.dart';
 import 'screens/admin/admin_auth_guard.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() {
   runApp(
@@ -33,13 +36,15 @@ class MediQuickApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'MediQuick',
+      navigatorKey: navigatorKey,
       theme: AppTheme.theme,
       debugShowCheckedModeBanner: false,
-      initialRoute: '/',
+      initialRoute: '/home',
       routes: {
         // ── Public routes (no auth required) ──
         '/': (context) => const AuthGate(),
         '/home': (context) => const HomeScreen(),
+        '/landing': (context) => const LandingPage(),
 
         // ── Protected routes (require login) ──
         '/dashboard': (context) => const AuthGuard(child: DashboardPage()),

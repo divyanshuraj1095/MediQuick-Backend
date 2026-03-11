@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../../theme/app_theme.dart';
 import '../../services/auth_service.dart';
 
-enum NavItem { home, localAdvisor, uploadPrescription }
+enum NavItem { home, localAdvisor, uploadPrescription, profile }
 
 class Sidebar extends StatefulWidget {
   final NavItem activeItem;
@@ -25,13 +25,7 @@ class _SidebarState extends State<Sidebar> {
       width: 240,
       decoration: BoxDecoration(
         color: Colors.white,
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(2, 0),
-          ),
-        ],
+        boxShadow: AppTheme.authShadow,
       ),
       child: Column(
         children: [
@@ -93,6 +87,9 @@ class _SidebarState extends State<Sidebar> {
           const Spacer(),
           // User profile card
           _UserProfileCard(
+            onProfile: () {
+              widget.onNavChanged?.call(NavItem.profile);
+            },
             onLogout: () async {
               await AuthService.logout();
               if (!context.mounted) return;
@@ -161,8 +158,9 @@ class _NavTile extends StatelessWidget {
 
 class _UserProfileCard extends StatefulWidget {
   final VoidCallback? onLogout;
+  final VoidCallback? onProfile;
 
-  const _UserProfileCard({this.onLogout});
+  const _UserProfileCard({this.onLogout, this.onProfile});
 
   @override
   State<_UserProfileCard> createState() => _UserProfileCardState();
@@ -290,11 +288,13 @@ class _UserProfileCardState extends State<_UserProfileCard> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: PopupMenuButton<String>(
-        offset: const Offset(0, -240),
+        offset: const Offset(0, -280),
         shape:
             RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
         onSelected: (value) {
-          if (value == 'logout') {
+          if (value == 'profile') {
+            widget.onProfile?.call();
+          } else if (value == 'logout') {
             widget.onLogout?.call();
           } else if (value == 'edit_address') {
             _showEditAddressDialog();
@@ -304,13 +304,8 @@ class _UserProfileCardState extends State<_UserProfileCard> {
           padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: Colors.white,
-            borderRadius: BorderRadius.circular(16),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.05),
-                blurRadius: 10,
-              ),
-            ],
+            borderRadius: AppTheme.authBorderRadius,
+            boxShadow: AppTheme.authShadow,
           ),
           child: Row(
             children: [
@@ -383,6 +378,15 @@ class _UserProfileCardState extends State<_UserProfileCard> {
           ),
         ),
         itemBuilder: (context) => [
+          const PopupMenuItem(
+            value: 'profile',
+            child: ListTile(
+              leading: Icon(Icons.person_outline, color: AppTheme.dashboardGreen),
+              title: Text('My Profile'),
+              contentPadding: EdgeInsets.zero,
+            ),
+          ),
+          const PopupMenuDivider(),
           PopupMenuItem(
             value: 'edit_address',
             child: ListTile(

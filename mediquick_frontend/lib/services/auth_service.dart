@@ -9,11 +9,14 @@ class AuthService {
 
   static Future<Map<String, dynamic>> login(String email, String password) async {
     try {
+      print('DEBUG: Attempting login to ${Config.loginUrl}');
       final response = await http.post(
         Uri.parse(Config.loginUrl),
         headers: {'Content-Type': 'application/json'},
         body: jsonEncode({'email': email, 'password': password}),
       );
+      print('DEBUG: Login response status: ${response.statusCode}');
+      print('DEBUG: Login response body: ${response.body}');
       final data = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && data['success'] == true) {
@@ -22,6 +25,7 @@ class AuthService {
       }
       return {'success': false, 'message': data['message'] ?? 'Login failed'};
     } catch (e) {
+      print('DEBUG: Login exception: $e');
       return {'success': false, 'message': 'Network error. Is the backend running?'};
     }
   }

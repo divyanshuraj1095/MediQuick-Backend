@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
 
-
 class AuthForm extends StatefulWidget {
   final bool isSignIn;
   final Function(bool) onTabChanged;
@@ -41,8 +40,13 @@ class _AuthFormState extends State<AuthForm> {
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (!mounted) return;
-    ScaffoldMessenger.of(context).showSnackBar(
+    // Capture the messenger using the synchronous, currently mounted context
+    final messenger = ScaffoldMessenger.of(context);
+
+    // Unfocus the keyboard to ensure smooth transition and avoid UI glitches
+    FocusScope.of(context).unfocus();
+
+    messenger.showSnackBar(
       SnackBar(
         content: Text(widget.isSignIn ? 'Signing in...' : 'Signing up...'),
         backgroundColor: AppTheme.primaryGreen,
@@ -60,19 +64,21 @@ class _AuthFormState extends State<AuthForm> {
             _passwordController.text,
           );
 
+    print('DEBUG: _handleSubmit result: $result');
+
     if (!mounted) return;
+
     if (result['success'] == true) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'Success!'),
           backgroundColor: Colors.green,
         ),
       );
 
-
       widget.onAuthSuccess?.call();
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
+      messenger.showSnackBar(
         SnackBar(
           content: Text(result['message'] ?? 'An error occurred'),
           backgroundColor: Colors.red,

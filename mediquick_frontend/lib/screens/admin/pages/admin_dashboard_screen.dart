@@ -322,42 +322,63 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.dashboardBg,
-      body: Row(
-        children: [
-          const AdminSidebar(activePage: 'dashboard'),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildContent(),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 800;
+
+        return Scaffold(
+          backgroundColor: AppTheme.dashboardBg,
+          appBar: isMobile
+              ? AppBar(
+                  backgroundColor: Colors.white,
+                  elevation: 0,
+                  iconTheme: const IconThemeData(color: AppTheme.textDark),
+                  title: const Text(
+                    'Admin Portal',
+                    style: TextStyle(
+                      color: AppTheme.textDark,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                )
+              : null,
+          drawer: isMobile ? const AdminSidebar(activePage: 'dashboard') : null,
+          body: Row(
+            children: [
+              if (!isMobile) const AdminSidebar(activePage: 'dashboard'),
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: _buildContent(isMobile),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isMobile) {
     return SingleChildScrollView(
-      padding: const EdgeInsets.all(28),
+      padding: EdgeInsets.all(isMobile ? 16 : 28),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Welcome + refresh
           Row(
             children: [
-              const Column(
+              Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Welcome back, Admin',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                  SizedBox(height: 8),
+                      style: TextStyle(fontSize: isMobile ? 22 : 28, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                  const SizedBox(height: 8),
                   Text('Here\'s your medicine activity overview',
-                      style: TextStyle(fontSize: 16, color: AppTheme.textGray)),
+                      style: TextStyle(fontSize: isMobile ? 14 : 16, color: AppTheme.textGray)),
                 ],
               ),
               const Spacer(),
@@ -377,13 +398,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 28),
 
           // ── Godowns panel ──
-          if (_godownsVisible) _buildGodownsPanel(),
+          if (_godownsVisible) _buildGodownsPanel(isMobile),
         ],
       ),
     );
   }
 
-  Widget _buildGodownsPanel() {
+  Widget _buildGodownsPanel(bool isMobile) {
     return AnimatedSize(
       duration: const Duration(milliseconds: 300),
       curve: Curves.easeInOut,
@@ -472,16 +493,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 ),
               )
             else
-              ListView.separated(
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                padding: const EdgeInsets.all(16),
-                itemCount: _godowns.length,
-                separatorBuilder: (_, __) => const SizedBox(height: 12),
-                itemBuilder: (_, i) => _GodownLocationCard(
-                  godown: _godowns[i],
-                  onEdit: () => _showEditDialog(_godowns[i]),
-                  onDelete: () => _showDeleteDialog(_godowns[i]),
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: ConstrainedBox(
+                  constraints: BoxConstraints(
+                    minWidth: MediaQuery.of(context).size.width - (isMobile ? 32 : 56), // Account for margins
+                  ),
+                  child: ListView.separated(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _godowns.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
+                    itemBuilder: (_, i) => _GodownLocationCard(
+                      godown: _godowns[i],
+                      onEdit: () => _showEditDialog(_godowns[i]),
+                      onDelete: () => _showDeleteDialog(_godowns[i]),
+                    ),
+                  ),
                 ),
               ),
           ],

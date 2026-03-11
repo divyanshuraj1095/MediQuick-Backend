@@ -12,7 +12,7 @@ class MedicineResult {
   final String name;
   final double price;
   final String image;
-  final String category;
+  final String type; // Replaced category with type to match backend schema types (e.g. Antibiotic)
   final bool prescriptionRequired;
 
   const MedicineResult({
@@ -20,7 +20,7 @@ class MedicineResult {
     required this.name,
     required this.price,
     required this.image,
-    required this.category,
+    required this.type,
     required this.prescriptionRequired,
   });
 
@@ -30,7 +30,7 @@ class MedicineResult {
       name: (json['name'] ?? 'Unknown').toString(),
       price: ((json['price'] ?? 0) as num).toDouble(),
       image: (json['image'] ?? '').toString(),
-      category: (json['category'] ?? 'COMMON').toString(),
+      type: (json['type'] ?? 'OTHER').toString(),
       prescriptionRequired: (json['prescriptionRequired'] ?? false) == true,
     );
   }
@@ -191,22 +191,28 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
         child: CompositedTransformFollower(
           link: _layerLink,
           showWhenUnlinked: false,
-          offset: Offset(0, size.height + 4),
+          offset: Offset(0, size.height + 8), // More breathing room
           child: Material(
-            elevation: 8,
-            borderRadius: BorderRadius.circular(16),
-            shadowColor: Colors.black.withOpacity(0.15),
-            child: _DropdownContent(
-              isLoading: _isLoading,
-              hasError: _hasError,
-              results: _results,
-              query: _controller.text,
-              onSelect: (med) {
-                _controller.clear();
-                _hideDropdown();
-                _focusNode.unfocus();
-                widget.onMedicineSelected?.call(med);
-              },
+            elevation: 0, // Using manual shadow instead
+            borderRadius: AppTheme.authBorderRadius,
+            child: Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: AppTheme.authBorderRadius,
+                boxShadow: AppTheme.authShadow,
+              ),
+              child: _DropdownContent(
+                isLoading: _isLoading,
+                hasError: _hasError,
+                results: _results,
+                query: _controller.text,
+                onSelect: (med) {
+                  _controller.clear();
+                  _hideDropdown();
+                  _focusNode.unfocus();
+                  widget.onMedicineSelected?.call(med);
+                },
+              ),
             ),
           ),
         ),
@@ -230,16 +236,17 @@ class _MedicineSearchBarState extends State<MedicineSearchBar> {
     return CompositedTransformTarget(
       link: _layerLink,
       child: Container(
-        height: 44,
+        height: 56, // Increased height to resemble auth fields
         decoration: BoxDecoration(
-          color: AppTheme.backgroundGray,
-          borderRadius: BorderRadius.circular(12),
+          color: _showDropdown ? Colors.white : AppTheme.backgroundGray,
+          borderRadius: BorderRadius.circular(16), // Slightly rounded like auth
           border: Border.all(
             color: _showDropdown
-                ? AppTheme.dashboardGreen
+                ? AppTheme.primaryGreen
                 : AppTheme.borderGray,
-            width: _showDropdown ? 1.5 : 1,
+            width: _showDropdown ? 2 : 1, // Matches focused auth borders
           ),
+          boxShadow: _showDropdown ? AppTheme.authShadow : [],
         ),
         child: Row(
           children: [
@@ -455,7 +462,9 @@ class _ResultTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -464,16 +473,17 @@ class _ResultTile extends StatelessWidget {
                           borderRadius: BorderRadius.circular(6),
                         ),
                         child: Text(
-                          medicine.category,
+                          medicine.type,
                           style: const TextStyle(
                             fontSize: 11,
                             color: AppTheme.dashboardGreen,
                             fontWeight: FontWeight.w500,
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
-                      if (isPrescription) ...[
-                        const SizedBox(width: 6),
+                      if (isPrescription)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -489,7 +499,6 @@ class _ResultTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ],

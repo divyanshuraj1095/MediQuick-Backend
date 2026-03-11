@@ -70,6 +70,17 @@ class AppTheme {
     color: Colors.white,
   );
 
+  // Default Aesthetics
+  static final List<BoxShadow> authShadow = [
+    BoxShadow(
+      color: Colors.black.withValues(alpha: 0.1),
+      blurRadius: 20,
+      offset: const Offset(0, 10),
+    ),
+  ];
+
+  static final BorderRadius authBorderRadius = BorderRadius.circular(24);
+
   // Theme Data
   static ThemeData get theme {
     return ThemeData(
