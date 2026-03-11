@@ -1,111 +1,6 @@
-# ⚡💊 MediQuick — Quick Commerce Pharmacy Platform
+# 💊 MediQuick
 
-**MediQuick** is a **location-based quick commerce pharmacy application** designed to deliver medicines and healthcare products in **minutes (10–30 mins)** using **nearby inventory**, inspired by Zepto and Blinkit — but focused exclusively on **pharmacy and healthcare**.
-
-This project is built with a **product-first mindset**, emphasizing **speed, real-time availability, and scalable backend architecture**, with future **AI/ML-powered medical assistance**.
-
----
-
-## 🚀 What Makes MediQuick a Quick Commerce App?
-
-MediQuick is not traditional e-commerce. It is designed around **instant fulfillment**:
-
-* 📍 **Location-based pharmacy selection**
-* 🏪 **Nearby inventory only (dark-store model)**
-* ⚡ **Instant order processing**
-* 📦 **Real-time stock validation**
-* ⏱️ **Fast delivery commitment (ETA)**
-
-> If a product cannot be delivered immediately, it is **not shown** to the user.
-
----
-
-## 🧩 Core Features
-
-### 🔐 Authentication & Users
-
-* User registration & login
-* JWT-based secure authentication
-* Role-based access (User / Admin)
-
----
-
-### 🏥 Pharmacies & Inventory (Quick Commerce Core)
-
-* Each pharmacy has:
-
-  * Location (latitude & longitude)
-  * Delivery radius (e.g. 3 km)
-* Products are tied to **specific nearby pharmacies**
-* Only **deliverable products** are visible to the user
-
----
-
-### 🔍 Ultra-Fast Search
-
-* Real-time medicine search
-* Case-insensitive partial matching
-* Optimized for quick discovery (sub-second response)
-
----
-
-### 🛒 Orders & Fulfillment
-
-* Instant order placement
-* Order lifecycle:
-
-  ```
-  PLACED → CONFIRMED → OUT_FOR_DELIVERY → DELIVERED
-  ```
-* Real-time order status tracking
-* Automatic stock reduction on order confirmation
-
----
-
-### ⏱️ ETA & Speed Commitment
-
-* Estimated delivery time shown before checkout
-* ETA based on:
-
-  * Distance from pharmacy
-  * Average delivery speed
-  * Packing time
-* Designed to support **10–30 minute delivery windows**
-
----
-
-### 🧠 AI / ML (Planned & Extensible)
-
-* Symptom-based medical recommendation system
-* ML-powered medicine suggestions
-* Patient description analysis
-* Future prescription intelligence
-
----
-
-## 🛠 Tech Stack
-
-### Backend (Implemented)
-
-* **Node.js**
-* **Express.js**
-* **MongoDB + Mongoose**
-* **JWT Authentication**
-* **bcrypt**
-* RESTful API architecture
-
-### Frontend (Planned)
-
-* **React.js**
-* **Tailwind CSS**
-* **Axios**
-
-### Dev & Infrastructure
-
-* Nodemon
-* Git & GitHub
-* Environment-based configuration
-* Cloud-ready architecture
+**MediQuick** is a full-stack medicine delivery platform that allows users to search for medicines based on their location, place orders, scan prescriptions using AI-powered OCR, and track their orders — all within a clean, modern Flutter web app backed by a Node.js/Express API and MongoDB.
 
 ---
 
@@ -113,100 +8,191 @@ MediQuick is not traditional e-commerce. It is designed around **instant fulfill
 
 ```
 MediQuick/
-├── backend/
-│   ├── config/
-│   │   └── db.js
-│   ├── controllers/
-│   ├── models/
-│   ├── routes/
-│   ├── middleware/
-│   ├── server.js
-│   ├── package.json
-│   └── .env
-├── frontend/ (planned)
-└── README.md
+├── backend/                  # Node.js + Express REST API
+│   ├── controllers/          # Route handlers (auth, medicines, orders, etc.)
+│   ├── models/               # Mongoose schemas
+│   ├── routes/               # Express route definitions
+│   ├── middlewares/          # Auth protection, order validation
+│   ├── utils/                # Cloudinary upload, medicine utilities
+│   ├── services/             # AI/ML integrations (Gemini OCR)
+│   ├── config/               # MongoDB connection
+│   └── server.js             # Entry point
+│
+├── mediquick_frontend/       # Flutter Web application
+│   └── lib/
+│       ├── pages/            # High-level screens (Dashboard, Landing)
+│       ├── screens/          # Feature screens (Checkout, Prescription, Admin)
+│       ├── widgets/          # Reusable UI components
+│       ├── services/         # HTTP service classes
+│       ├── theme/            # App colors, typography
+│       └── config.dart       # API base URL config
+│
+└── ml_service/               # (Optional) Python ML microservice
 ```
 
 ---
 
-## ⚙️ Setup Instructions
+## ✨ Features
 
-### 1️⃣ Clone Repository
+### 👤 User
+- **Register / Login** with JWT-based authentication
+- **Location-aware medicine search** — only shows medicines from godowns within 5km
+- **Emergency Mode** — expands search radius to 500km when no local stock is found
+- **Prescription upload** with AI OCR (Google Gemini) to auto-extract medicines
+- **Cart & Checkout** — add medicines, review cart, and place orders
+- **Dashboard** — view total orders, most ordered medicine, monthly spending history, and order status tracking
+- **Order Status Timeline** — Picked Up → In Transit → Delivered
+
+### 🛡️ Admin
+- **Secure admin login** with separate token-based auth
+- **Godown management** — Add, view, edit, delete godowns with GPS coordinates
+- **Medicine management** — Add medicines with type (Painkiller, Antibiotic, etc.), category, price, and stock
+- **Inventory viewer** — View stock levels per godown with low-stock alerts
+
+---
+
+## 🔧 Backend Setup
+
+### Prerequisites
+- Node.js v18+
+- MongoDB Atlas account
+- Cloudinary account (for medicine images)
+- Google Gemini API key (for OCR)
+
+### Installation
 
 ```bash
-git clone git@github.com:divyanshuraj1095/MediQuick.git
-```
-
-### 2️⃣ Backend Setup
-
-```bash
-cd MediQuick/backend
+cd backend
 npm install
 ```
 
-### 3️⃣ Environment Variables
+### Environment Variables
 
-Create a `.env` file inside `backend/`:
+Create a `.env` file in the `backend/` folder:
 
 ```env
 MONGO_URI=your_mongodb_connection_string
 JWT_SECRET=your_jwt_secret
+ADMIN_SECRET=your_admin_jwt_secret
+
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+
+GEMINI_API_KEY=your_gemini_api_key
+
 PORT=5000
 ```
 
-### 4️⃣ Run Backend
+### Running
 
 ```bash
+# Development (with auto-reload)
 npm run dev
+
+# Production
+npm start
 ```
 
-Backend will run at:
+Server runs at `http://localhost:5000`
 
+---
+
+## 📱 Frontend Setup
+
+### Prerequisites
+- Flutter SDK (3.x+)
+- Chrome (for web debugging)
+
+### Installation
+
+```bash
+cd mediquick_frontend
+flutter pub get
 ```
-http://localhost:5000
+
+### Configure API URL
+
+Edit `lib/config.dart` and set your backend base URL:
+
+```dart
+static const String baseUrl = 'http://localhost:5000';
+```
+
+### Running
+
+```bash
+flutter run -d chrome
 ```
 
 ---
 
-## 🔌 API Capabilities (Sample)
+## 🌐 API Endpoints
 
-| Method | Endpoint                    | Purpose             |
-| ------ | --------------------------- | ------------------- |
-| POST   | `/api/auth/register`        | Register user       |
-| POST   | `/api/auth/login`           | Login               |
-| GET    | `/api/products?search=para` | Fast search         |
-| POST   | `/api/orders`               | Place instant order |
-| GET    | `/api/orders/user`          | User order history  |
+| Method | Route | Description |
+|--------|-------|-------------|
+| POST | `/api/auth/register` | Register a new user |
+| POST | `/api/auth/login` | Login and receive JWT |
+| PUT | `/api/auth/location` | Update user GPS location |
+| GET | `/api/medicine/search` | Search medicines (geo-filtered) |
+| GET | `/api/medicine` | Get all medicines |
+| POST | `/api/simple-order` | Place a new order |
+| GET | `/api/simple-order/myorders` | Get current user's orders |
+| POST | `/api/prescription/upload` | Upload & OCR a prescription |
+| GET | `/api/godown` | List all godowns |
+| POST | `/api/godown` | Create a new godown |
+| POST | `/api/admin/login` | Admin login |
+| POST | `/api/admin/godowns` | Admin: Create godown |
+| PUT | `/api/admin/godowns/:id` | Admin: Update godown |
+| DELETE | `/api/admin/godowns/:id` | Admin: Delete godown |
 
----
-
-## 🎯 Project Vision
-
-MediQuick is designed as a **scalable quick commerce product**, focusing on:
-
-* Real-world backend architecture
-* Location-aware delivery systems
-* High-speed commerce logic
-* Production-ready API design
-* Future AI integration
-
----
-
-## 👨‍💻 Author
-
-**Divyanshu Raj**
-GitHub: [https://github.com/divyanshuraj1095](https://github.com/divyanshuraj1095)
+> **Emergency Mode**: Append `?emergencyMode=true` to `/api/medicine/search` to expand the search radius from 5km to 500km.
 
 ---
 
-## 📌 Status
+## 🗺️ Medicine Search & Emergency Mode
 
-🚧 Actively under development
-Upcoming:
+### Normal Mode
+Medicines are filtered to show **only those available in godowns within 5km** of the user's GPS location. If no nearby godowns carry the searched medicine, the frontend shows an "Enable Emergency Mode" prompt.
 
-* Frontend UI
-* AI/ML medical assistant
-* Advanced search & caching
-* Deployment to cloud
+### Emergency Mode
+When activated, the search radius is expanded to **500km**. An orange warning banner informs the user that delivery may take longer. The mode resets automatically when the search is cleared.
 
+---
 
+## 🧠 AI Prescription OCR
+
+Users can upload a **photo of their prescription**. The backend sends it to **Google Gemini** which extracts medicine names. These are then matched against the database and shown as searchable results the user can add directly to their cart.
+
+---
+
+## 🏗️ Data Models
+
+| Model | Key Fields |
+|-------|-----------|
+| `User` | name, email, password (bcrypt), address, location (GeoJSON) |
+| `Medicine` | name, type, category, price, stock, prescriptionRequired |
+| `Godown` | name, code, location (GeoJSON Point), isActive |
+| `GodownInventory` | godown (ref), product (ref), stock |
+| `SimpleOrder` | user, items [ name, qty, price ], totalAmount, createdAt |
+| `Prescription` | user, imageUrl, extractedMedicines |
+
+---
+
+## 🛠️ Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | Flutter (Web) |
+| Backend | Node.js, Express.js |
+| Database | MongoDB Atlas (Mongoose) |
+| Auth | JWT (jsonwebtoken), bcrypt |
+| Image Storage | Cloudinary |
+| AI / OCR | Google Gemini API |
+| Location | Geolocator (Flutter), MongoDB `$geoWithin` |
+
+---
+
+## 📄 License
+
+ISC © 2025 MediQuick
