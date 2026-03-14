@@ -1,6 +1,9 @@
+import 'package:geolocator/geolocator.dart';
+import 'package:geocoding/geocoding.dart';
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
+import '../main.dart';
 import '../config.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:provider/provider.dart';
@@ -53,14 +56,18 @@ class _DashboardPageState extends State<DashboardPage> {
                   elevation: 0,
                   iconTheme: const IconThemeData(color: AppTheme.textDark),
                   title: const Row(
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.medical_services, color: AppTheme.dashboardGreen),
                       SizedBox(width: 8),
-                      Text(
-                        'MediQuick',
-                        style: TextStyle(
-                          color: AppTheme.textDark,
-                          fontWeight: FontWeight.bold,
+                      Flexible(
+                        child: Text(
+                          'MediQuick',
+                          style: TextStyle(
+                            color: AppTheme.textDark,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          overflow: TextOverflow.ellipsis,
                         ),
                       ),
                     ],
@@ -433,7 +440,7 @@ class _HomeMedicinesViewState extends State<_HomeMedicinesView> {
                                           quantity: 1,
                                           requiresPrescription: med.prescriptionRequired,
                                         );
-                                    ScaffoldMessenger.of(context).showSnackBar(
+                                    scaffoldMessengerKey.currentState?.showSnackBar(
                                       SnackBar(
                                         content: Text('${med.name} added to cart'),
                                         backgroundColor: AppTheme.dashboardGreen,
@@ -607,7 +614,88 @@ class _LocationPickerState extends State<_LocationPicker> {
     }
   }
 
+  Future<void> _getCurrentLocation() async {
+    final messenger = ScaffoldMessenger.of(context);
+    setState(() => _isLoadingAddress = true);
+    
+    try {
+      bool serviceEnabled;
+      LocationPermission permission;
+
+      serviceEnabled = await Geolocator.isLocationServiceEnabled();
+      if (!serviceEnabled) {
+        if (mounted) {
+           messenger.showSnackBar(
+             const SnackBar(content: Text('Location services are disabled. Please enable them.'), backgroundColor: Colors.red),
+           );
+           setState(() => _isLoadingAddress = false);
+        }
+        return;
+      }
+
+      permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+        if (permission == LocationPermission.denied) {
+          if (mounted) {
+             messenger.showSnackBar(
+               const SnackBar(content: Text('Location permissions are denied.'), backgroundColor: Colors.red),
+             );
+             setState(() => _isLoadingAddress = false);
+          }
+          return;
+        }
+      }
+      
+      if (permission == LocationPermission.deniedForever) {
+        if (mounted) {
+           messenger.showSnackBar(
+             const SnackBar(content: Text('Location permissions are permanently denied, we cannot request permissions.'), backgroundColor: Colors.red),
+           );
+           setState(() => _isLoadingAddress = false);
+        }
+        return;
+      }
+
+      // Try to get last known position first (fast)
+      Position? position = await Geolocator.getLastKnownPosition();
+      
+      // If no last known position, request the current one with a timeout
+      position ??= await Geolocator.getCurrentPosition(
+        desiredAccuracy: LocationAccuracy.high,
+        timeLimit: const Duration(seconds: 10),
+      );
+      
+      // Reverse Geocoding
+      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      
+      if (placemarks.isNotEmpty) {
+        Placemark place = placemarks[0];
+        
+        List<String> addressParts = [];
+        if (place.subLocality != null && place.subLocality!.isNotEmpty) addressParts.add(place.subLocality!);
+        if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
+        if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
+        
+        String fetchedAddress = addressParts.isNotEmpty ? addressParts.join(', ') : 'Unknown Location';
+        
+        await _updateAddress(fetchedAddress);
+      } else {
+        throw Exception("Could not find address from coordinates");
+      }
+      
+    } catch (e) {
+      if (mounted) {
+         messenger.showSnackBar(
+           SnackBar(content: Text('Failed to get location: ${e.toString()}'), backgroundColor: Colors.red),
+         );
+         setState(() => _isLoadingAddress = false);
+      }
+    }
+  }
+
   Future<void> _updateAddress(String newAddress) async {
+    final messenger = ScaffoldMessenger.of(context);
     if (newAddress.trim().isEmpty) return;
     setState(() => _isLoadingAddress = true);
     
@@ -617,11 +705,11 @@ class _LocationPickerState extends State<_LocationPicker> {
       setState(() => _isLoadingAddress = false);
       if (result['success'] == true) {
         setState(() => _address = newAddress.trim());
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           const SnackBar(content: Text('Address updated successfully'), backgroundColor: AppTheme.dashboardGreen),
         );
       } else {
-        ScaffoldMessenger.of(context).showSnackBar(
+        messenger.showSnackBar(
           SnackBar(content: Text(result['message'] ?? 'Failed to update address'), backgroundColor: Colors.red),
         );
       }
@@ -673,9 +761,7 @@ class _LocationPickerState extends State<_LocationPicker> {
         if (value == 'manual') {
           _showManualAddressDialog();
         } else if (value == 'current') {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('GPS Location feature coming soon! Please set manually.')),
-          );
+          _getCurrentLocation();
         }
       },
       shape: RoundedRectangleBorder(
