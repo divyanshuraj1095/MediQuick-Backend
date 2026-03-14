@@ -657,17 +657,21 @@ class _LocationPickerState extends State<_LocationPicker> {
         return;
       }
 
-      // Try to get last known position first (fast)
-      Position? position = await Geolocator.getLastKnownPosition();
-      
-      // If no last known position, request the current one with a timeout
-      position ??= await Geolocator.getCurrentPosition(
+      // Request the current location with a timeout
+      Position position = await Geolocator.getCurrentPosition(
         desiredAccuracy: LocationAccuracy.high,
         timeLimit: const Duration(seconds: 10),
       );
       
-      // Reverse Geocoding
-      List<Placemark> placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      // Reverse Geocoding securely
+      List<Placemark> placemarks = [];
+      try {
+        placemarks = await placemarkFromCoordinates(position.latitude, position.longitude);
+      } catch (e) {
+        // Fallback for Web/Desktop if reverse geocoding is unsupported
+        await _updateAddress('${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}');
+        return;
+      }
       
       if (placemarks.isNotEmpty) {
         Placemark place = placemarks[0];
@@ -677,7 +681,17 @@ class _LocationPickerState extends State<_LocationPicker> {
         if (place.locality != null && place.locality!.isNotEmpty) addressParts.add(place.locality!);
         if (place.administrativeArea != null && place.administrativeArea!.isNotEmpty) addressParts.add(place.administrativeArea!);
         
-        String fetchedAddress = addressParts.isNotEmpty ? addressParts.join(', ') : 'Unknown Location';
+        // Sometimes only the name/street is available
+        if (addressParts.isEmpty && place.street != null && place.street!.isNotEmpty) {
+          addressParts.add(place.street!);
+        }
+        if (addressParts.isEmpty && place.name != null && place.name!.isNotEmpty) {
+          addressParts.add(place.name!);
+        }
+        
+        String fetchedAddress = addressParts.isNotEmpty 
+            ? addressParts.join(', ') 
+            : '${position.latitude.toStringAsFixed(4)}, ${position.longitude.toStringAsFixed(4)}';
         
         await _updateAddress(fetchedAddress);
       } else {
