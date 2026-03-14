@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 import '../services/auth_service.dart';
+import '../main.dart';
 
 class AuthForm extends StatefulWidget {
   final bool isSignIn;
@@ -27,6 +28,7 @@ class _AuthFormState extends State<AuthForm> {
   bool _obscurePassword = true;
   bool _obscureConfirmPassword = true;
   bool _rememberMe = false;
+  bool _isLoading = false;
 
   @override
   void dispose() {
@@ -38,52 +40,62 @@ class _AuthFormState extends State<AuthForm> {
   }
 
   Future<void> _handleSubmit() async {
+    if (_isLoading) return;
     if (!_formKey.currentState!.validate()) return;
 
-    // Capture the messenger using the synchronous, currently mounted context
-    final messenger = ScaffoldMessenger.of(context);
+    setState(() {
+      _isLoading = true;
+    });
 
-    // Unfocus the keyboard to ensure smooth transition and avoid UI glitches
-    FocusScope.of(context).unfocus();
+    try {
+      // Unfocus the keyboard to ensure smooth transition and avoid UI glitches
+      FocusScope.of(context).unfocus();
 
-    messenger.showSnackBar(
-      SnackBar(
-        content: Text(widget.isSignIn ? 'Signing in...' : 'Signing up...'),
-        backgroundColor: AppTheme.primaryGreen,
-      ),
-    );
-
-    final result = widget.isSignIn
-        ? await AuthService.login(
-            _emailController.text.trim(),
-            _passwordController.text,
-          )
-        : await AuthService.register(
-            _nameController.text.trim(),
-            _emailController.text.trim(),
-            _passwordController.text,
-          );
-
-    print('DEBUG: _handleSubmit result: $result');
-
-    if (!mounted) return;
-
-    if (result['success'] == true) {
-      messenger.showSnackBar(
+      scaffoldMessengerKey.currentState?.showSnackBar(
         SnackBar(
-          content: Text(result['message'] ?? 'Success!'),
-          backgroundColor: Colors.green,
+          content: Text(widget.isSignIn ? 'Signing in...' : 'Signing up...'),
+          backgroundColor: AppTheme.primaryGreen,
         ),
       );
 
-      widget.onAuthSuccess?.call();
-    } else {
-      messenger.showSnackBar(
-        SnackBar(
-          content: Text(result['message'] ?? 'An error occurred'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      final result = widget.isSignIn
+          ? await AuthService.login(
+              _emailController.text.trim(),
+              _passwordController.text,
+            )
+          : await AuthService.register(
+              _nameController.text.trim(),
+              _emailController.text.trim(),
+              _passwordController.text,
+            );
+
+      print('DEBUG: _handleSubmit result: $result');
+
+      if (!mounted) return;
+
+      if (result['success'] == true) {
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'Success!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+
+        widget.onAuthSuccess?.call();
+      } else {
+        scaffoldMessengerKey.currentState?.showSnackBar(
+          SnackBar(
+            content: Text(result['message'] ?? 'An error occurred'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
@@ -329,15 +341,24 @@ class _AuthFormState extends State<AuthForm> {
               child: Material(
                 color: Colors.transparent,
                 child: InkWell(
-                  onTap: _handleSubmit,
+                  onTap: _isLoading ? null : _handleSubmit,
                   borderRadius: BorderRadius.circular(12),
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     alignment: Alignment.center,
-                    child: Text(
-                      widget.isSignIn ? 'Sign In' : 'Sign Up',
-                      style: AppTheme.buttonText,
-                    ),
+                    child: _isLoading
+                        ? const SizedBox(
+                            height: 20,
+                            width: 20,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                        : Text(
+                            widget.isSignIn ? 'Sign In' : 'Sign Up',
+                            style: AppTheme.buttonText,
+                          ),
                   ),
                 ),
               ),

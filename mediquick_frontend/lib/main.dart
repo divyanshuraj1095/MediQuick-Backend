@@ -19,6 +19,7 @@ import 'screens/admin/pages/admin_dashboard_screen.dart';
 import 'screens/admin/admin_auth_guard.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+final GlobalKey<ScaffoldMessengerState> scaffoldMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
 void main() {
   runApp(
@@ -37,6 +38,7 @@ class MediQuickApp extends StatelessWidget {
     return MaterialApp(
       title: 'MediQuick',
       navigatorKey: navigatorKey,
+      scaffoldMessengerKey: scaffoldMessengerKey,
       theme: AppTheme.theme,
       debugShowCheckedModeBanner: false,
       initialRoute: '/home',
