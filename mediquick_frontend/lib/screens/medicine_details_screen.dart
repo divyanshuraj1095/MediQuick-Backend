@@ -232,140 +232,157 @@ class _MedicineDetailsScreenState extends State<MedicineDetailsScreen> {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Image Section
-            Container(
-              width: double.infinity,
-              height: 250,
-              color: Colors.white,
-              child: imageUrl.isNotEmpty
-                  ? Image.network(
-                      imageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(Icons.medication, size: 80, color: AppTheme.dashboardGreen),
-                    )
-                  : const Icon(Icons.medication, size: 80, color: AppTheme.dashboardGreen),
-            ),
-            
-            // Details Section
-            Padding(
-              padding: const EdgeInsets.all(20),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (rxRequired) ...[
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                      decoration: BoxDecoration(
-                        color: Colors.orange.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: const Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(Icons.assignment, size: 14, color: Colors.orange),
-                          SizedBox(width: 4),
-                          Text(
-                            'Prescription Required',
-                            style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        ],
-                      ),
+      body: LayoutBuilder(
+        builder: (context, constraints) {
+          final isWide = constraints.maxWidth > 800;
+
+          final imageSection = Container(
+            width: double.infinity,
+            height: isWide ? 400 : 250,
+            color: Colors.white,
+            child: imageUrl.isNotEmpty
+                ? Image.network(
+                    imageUrl,
+                    fit: BoxFit.contain,
+                    errorBuilder: (_, __, ___) => const Icon(Icons.medication, size: 80, color: AppTheme.dashboardGreen),
+                  )
+                : const Icon(Icons.medication, size: 80, color: AppTheme.dashboardGreen),
+          );
+
+          final detailsSection = Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (rxRequired) ...[
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: Colors.orange.withOpacity(0.1),
+                      borderRadius: BorderRadius.circular(6),
                     ),
-                    const SizedBox(height: 12),
-                  ],
-                  Text(
-                    name,
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                    child: const Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(Icons.assignment, size: 14, color: Colors.orange),
+                        SizedBox(width: 4),
+                        Text(
+                          'Prescription Required',
+                          style: TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'by $manufacturer',
-                    style: const TextStyle(fontSize: 14, color: AppTheme.textGray),
-                  ),
-                  const SizedBox(height: 16),
-                  
-                  // Price Tag
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
+                  const SizedBox(height: 12),
+                ],
+                Text(
+                  name,
+                  style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold, color: AppTheme.textDark),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'by $manufacturer',
+                  style: const TextStyle(fontSize: 14, color: AppTheme.textGray),
+                ),
+                const SizedBox(height: 16),
+                
+                // Price Tag
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      _formatPrice(price),
+                      style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.dashboardGreen),
+                    ),
+                    const SizedBox(width: 8),
+                    if (mrp > price) ...[
                       Text(
-                        _formatPrice(price),
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold, color: AppTheme.dashboardGreen),
+                        _formatPrice(mrp),
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textLightGray,
+                          decoration: TextDecoration.lineThrough,
+                        ),
                       ),
                       const SizedBox(width: 8),
-                      if (mrp > price) ...[
-                        Text(
-                          _formatPrice(mrp),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            color: AppTheme.textLightGray,
-                            decoration: TextDecoration.lineThrough,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: Colors.green.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(4),
-                          ),
-                          child: Text(
-                            '$discount% OFF',
-                            style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
-                          ),
-                        )
-                      ]
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  
-                  // Quantity
-                  const Text('Quantity', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textDark)),
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      _buildQuantityBtn(Icons.remove, _decreaseQuantity),
                       Container(
-                        width: 48,
-                        alignment: Alignment.center,
-                        child: Text(
-                          _quantity.toString(),
-                          style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: Colors.green.withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4),
                         ),
+                        child: Text(
+                          '$discount% OFF',
+                          style: const TextStyle(color: Colors.green, fontSize: 12, fontWeight: FontWeight.bold),
+                        ),
+                      )
+                    ]
+                  ],
+                ),
+                const SizedBox(height: 24),
+                
+                // Quantity
+                const Text('Quantity', style: TextStyle(fontSize: 14, fontWeight: FontWeight.w600, color: AppTheme.textDark)),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildQuantityBtn(Icons.remove, _decreaseQuantity),
+                    Container(
+                      width: 48,
+                      alignment: Alignment.center,
+                      child: Text(
+                        _quantity.toString(),
+                        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
-                      _buildQuantityBtn(Icons.add, _increaseQuantity),
-                    ],
-                  ),
-                  
-                  const SizedBox(height: 24),
-                  const Divider(color: AppTheme.borderGray),
-                  const SizedBox(height: 16),
-                  
-                  // Composition
-                  const Text('Composition', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                  const SizedBox(height: 8),
-                  Text(composition, style: const TextStyle(fontSize: 14, color: AppTheme.textGray)),
-                  
-                  const SizedBox(height: 24),
-                  
-                  // Description
-                  const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                  const SizedBox(height: 8),
-                  Text(
-                    description,
-                    style: const TextStyle(fontSize: 14, color: AppTheme.textGray, height: 1.5),
-                  ),
-                  
-                  const SizedBox(height: 48), // Bottom padding
-                ],
-              ),
+                    ),
+                    _buildQuantityBtn(Icons.add, _increaseQuantity),
+                  ],
+                ),
+                
+                const SizedBox(height: 24),
+                const Divider(color: AppTheme.borderGray),
+                const SizedBox(height: 16),
+                
+                // Composition
+                const Text('Composition', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                const SizedBox(height: 8),
+                Text(composition, style: const TextStyle(fontSize: 14, color: AppTheme.textGray)),
+                
+                const SizedBox(height: 24),
+                
+                // Description
+                const Text('Description', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                const SizedBox(height: 8),
+                Text(
+                  description,
+                  style: const TextStyle(fontSize: 14, color: AppTheme.textGray, height: 1.5),
+                ),
+                
+                const SizedBox(height: 48), // Bottom padding
+              ],
             ),
-          ],
-        ),
+          );
+
+          if (isWide) {
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: SingleChildScrollView(child: imageSection)),
+                Expanded(child: SingleChildScrollView(child: detailsSection)),
+              ],
+            );
+          }
+
+          return SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                imageSection,
+                detailsSection,
+              ],
+            ),
+          );
+        },
       ),
     );
   }

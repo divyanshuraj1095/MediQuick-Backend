@@ -16,7 +16,14 @@ router.get("/search", searchMedicines);
 
 router.get("/:id", getMedicineById);
 
-router.post("/", upload.single("image"), addMedicine);
-
+// Accept both multipart (with image) and plain JSON (without image)
+router.post("/", (req, res, next) => {
+    const contentType = req.headers['content-type'] || '';
+    if (contentType.includes('multipart/form-data')) {
+        upload.single("image")(req, res, next);
+    } else {
+        next();
+    }
+}, addMedicine);
 
 module.exports = router;

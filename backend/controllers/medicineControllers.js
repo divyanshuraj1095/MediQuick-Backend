@@ -153,18 +153,16 @@ exports.searchMedicines = async (req, res) => {
 exports.addMedicine = async (req, res) => {
     try {
         const { godownId, ...medicineData } = req.body;
-        let imageUrl = "";
 
-        // Upload image if exists
+        // Handle image: either uploaded file (multipart) or URL string in body
         if (req.file) {
             const result = await uploadToCloudinary(req.file.buffer);
-            imageUrl = result.secure_url;
+            medicineData.image = result.secure_url;
+        } else if (!medicineData.image) {
+            medicineData.image = "";
         }
 
-        const medicine = await Medicine.create({
-            ...medicineData,
-            image: imageUrl
-        });
+        const medicine = await Medicine.create(medicineData);
 
         if (godownId) {
             await GodownInventory.create({
@@ -181,6 +179,7 @@ exports.addMedicine = async (req, res) => {
         });
 
     } catch (error) {
+        console.error("[addMedicine] Error:", error.message);
         res.status(500).json({
             success: false,
             message: "Failed to add medicine",
@@ -188,5 +187,6 @@ exports.addMedicine = async (req, res) => {
         });
     }
 };
+
 
 

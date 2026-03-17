@@ -14,121 +14,154 @@ class HeroSection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        const SizedBox(height: 60),
-        // Large circular icon
-        Container(
-          width: 120,
-          height: 120,
-          decoration: BoxDecoration(
-            color: AppTheme.dashboardGreen,
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: AppTheme.dashboardGreen.withOpacity(0.3),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.medical_services,
-            size: 60,
-            color: Colors.white,
-          ),
-        ),
-        const SizedBox(height: 40),
-        // Main Heading
-        const Text(
-          'Your Trusted Medical\nSupply Partner',
-          textAlign: TextAlign.center,
-          style: TextStyle(
-            fontSize: 48,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.textDark,
-            height: 1.2,
-          ),
-        ),
-        const SizedBox(height: 24),
-        // Subtitle
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 40),
-          child: Text(
-            'Quality medical products delivered fast. From diagnostic equipment to first aid supplies, we have everything you need.',
-            textAlign: TextAlign.center,
-            style: AppTheme.bodyLarge.copyWith(
-              fontSize: 18,
-              color: AppTheme.textGray,
-            ),
-          ),
-        ),
-        const SizedBox(height: 40),
-        // CTA Buttons
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isMobile = constraints.maxWidth < 600;
+        final iconSize = isMobile ? 80.0 : 120.0;
+        final headingSize = isMobile ? 32.0 : 48.0;
+        final subtitlePadding = isMobile ? 20.0 : 40.0;
+
+        return Column(
           children: [
-            // Primary Button: Browse Products
+            SizedBox(height: isMobile ? 40 : 60),
+            // Large circular icon
             Container(
+              width: iconSize,
+              height: iconSize,
               decoration: BoxDecoration(
                 color: AppTheme.dashboardGreen,
-                borderRadius: BorderRadius.circular(12),
+                shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
                     color: AppTheme.dashboardGreen.withOpacity(0.3),
-                    blurRadius: 10,
-                    offset: const Offset(0, 5),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
                   ),
                 ],
               ),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: onBrowseProductsPressed ?? () {},
-                  borderRadius: BorderRadius.circular(12),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 32,
-                      vertical: 16,
-                    ),
-                    child: const Text(
-                      'Browse Products',
-                      style: AppTheme.buttonText,
-                    ),
-                  ),
-                ),
+              child: Icon(
+                Icons.medical_services,
+                size: iconSize / 2,
+                color: Colors.white,
               ),
             ),
-            const SizedBox(width: 16),
-            // Secondary Button: Learn More
-            OutlinedButton(
-              onPressed: onLearnMorePressed ?? () {},
-              style: OutlinedButton.styleFrom(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 32,
-                  vertical: 16,
-                ),
-                side: const BorderSide(
-                  color: AppTheme.dashboardGreen,
-                  width: 2,
-                ),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: const Text(
-                'Learn More',
+            SizedBox(height: isMobile ? 24 : 40),
+            // Main Heading
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: isMobile ? 16.0 : 0),
+              child: Text(
+                'Your Trusted Medical\nSupply Partner',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                  color: AppTheme.dashboardGreen,
+                  fontSize: headingSize,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.textDark,
+                  height: 1.2,
                 ),
               ),
             ),
+            const SizedBox(height: 24),
+            // Subtitle
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: subtitlePadding),
+              child: Text(
+                'Quality medical products delivered fast. From diagnostic equipment to first aid supplies, we have everything you need.',
+                textAlign: TextAlign.center,
+                style: AppTheme.bodyLarge.copyWith(
+                  fontSize: isMobile ? 16 : 18,
+                  color: AppTheme.textGray,
+                ),
+              ),
+            ),
+            const SizedBox(height: 40),
+            // CTA Buttons
+            if (isMobile)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildPrimaryButton(),
+                    const SizedBox(height: 16),
+                    _buildSecondaryButton(),
+                  ],
+                ),
+              )
+            else
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildPrimaryButton(),
+                  const SizedBox(width: 16),
+                  _buildSecondaryButton(),
+                ],
+              ),
+            SizedBox(height: isMobile ? 40 : 80),
           ],
+        );
+      },
+    );
+  }
+
+  Widget _buildPrimaryButton() {
+    return Container(
+      decoration: BoxDecoration(
+        color: AppTheme.dashboardGreen,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: AppTheme.dashboardGreen.withOpacity(0.3),
+            blurRadius: 10,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onBrowseProductsPressed ?? () {},
+          borderRadius: BorderRadius.circular(12),
+          child: Container(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 32,
+              vertical: 16,
+            ),
+            child: const Center(
+              child: Text(
+                'Browse Products',
+                style: AppTheme.buttonText,
+              ),
+            ),
+          ),
         ),
-        const SizedBox(height: 80),
-      ],
+      ),
+    );
+  }
+
+  Widget _buildSecondaryButton() {
+    return OutlinedButton(
+      onPressed: onLearnMorePressed ?? () {},
+      style: OutlinedButton.styleFrom(
+        padding: const EdgeInsets.symmetric(
+          horizontal: 32,
+          vertical: 16,
+        ),
+        side: const BorderSide(
+          color: AppTheme.dashboardGreen,
+          width: 2,
+        ),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
+      child: const Text(
+        'Learn More',
+        style: TextStyle(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: AppTheme.dashboardGreen,
+        ),
+      ),
     );
   }
 }

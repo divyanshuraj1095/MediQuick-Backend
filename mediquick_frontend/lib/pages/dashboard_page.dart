@@ -39,19 +39,38 @@ class _DashboardPageState extends State<DashboardPage> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      key: _scaffoldKey,
-      backgroundColor: AppTheme.dashboardBg,
-      body: Row(
-        children: [
-          Sidebar(
-            activeItem: _activeNav,
-            onNavChanged: (item) => setState(() => _activeNav = item),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AppTheme.dashboardBg,
+          drawer: isDesktop ? null : Drawer(
+            child: Sidebar(
+              activeItem: _activeNav,
+              onNavChanged: (item) {
+                setState(() => _activeNav = item);
+                if (!isDesktop) {
+                  Navigator.pop(context); // Close the drawer
+                }
+              },
+            ),
           ),
-          Expanded(
-            child: Column(
-              children: [
-                _TopHeader(onRefresh: _refresh),
+          body: Row(
+            children: [
+              if (isDesktop)
+                Sidebar(
+                  activeItem: _activeNav,
+                  onNavChanged: (item) => setState(() => _activeNav = item),
+                ),
+              Expanded(
+                child: Column(
+                  children: [
+                    _TopHeader(
+                      onRefresh: _refresh,
+                      onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+                    ),
                 Expanded(
                   child: FutureBuilder<DashboardData>(
                     future: _dashboardFuture,
@@ -176,6 +195,8 @@ class _DashboardPageState extends State<DashboardPage> {
       ),
       bottomNavigationBar: const CartBottomBar(),
     );
+      },
+    );
   }
 }
 
@@ -183,8 +204,9 @@ class _DashboardPageState extends State<DashboardPage> {
 
 class _TopHeader extends StatefulWidget {
   final VoidCallback? onRefresh;
+  final VoidCallback? onMenuPressed;
 
-  const _TopHeader({this.onRefresh});
+  const _TopHeader({this.onRefresh, this.onMenuPressed});
 
   @override
   State<_TopHeader> createState() => _TopHeaderState();
@@ -342,6 +364,14 @@ class _TopHeaderState extends State<_TopHeader> {
       ),
       child: Row(
         children: [
+          if (widget.onMenuPressed != null) ...[
+            IconButton(
+              icon: const Icon(Icons.menu),
+              onPressed: widget.onMenuPressed,
+              color: AppTheme.textDark,
+            ),
+            const SizedBox(width: 8),
+          ],
           // ── Search Bar (flexible, takes all available space) ──
           Expanded(
             child: MedicineSearchBar(
@@ -621,7 +651,21 @@ class _StatCardsRow extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isNarrow = constraints.maxWidth < 900;
-        if (isNarrow) {
+        final isVeryNarrow = constraints.maxWidth < 500;
+
+        if (isVeryNarrow) {
+          return Column(
+            children: [
+              SizedBox(width: double.infinity, child: cards[0]),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, child: cards[1]),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, child: cards[2]),
+              const SizedBox(height: 16),
+              SizedBox(width: double.infinity, child: cards[3]),
+            ],
+          );
+        } else if (isNarrow) {
           return Column(
             children: [
               Row(

@@ -1,48 +1,16 @@
-const https = require("https");
+const Groq = require("groq-sdk");
 
-// Call Gemini REST API directly — no SDK version issues
-function callGemini(apiKey, prompt) {
-  return new Promise((resolve, reject) => {
-    const body = JSON.stringify({
-      contents: [{ parts: [{ text: prompt }] }],
-      generationConfig: {
-        temperature: 0.4,
-        maxOutputTokens: 1024,
-      }
-    });
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
-    const options = {
-      hostname: "generativelanguage.googleapis.com",
-      path: `/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`,
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(body),
-      },
-    };
-
-    const req = https.request(options, (res) => {
-      let data = "";
-      res.on("data", (chunk) => (data += chunk));
-      res.on("end", () => {
-        try {
-          const parsed = JSON.parse(data);
-          if (parsed.error) {
-            reject(new Error(parsed.error.message || "Gemini API error"));
-          } else {
-            const text = parsed?.candidates?.[0]?.content?.parts?.[0]?.text ?? "";
-            resolve(text);
-          }
-        } catch (e) {
-          reject(new Error("Failed to parse Gemini response"));
-        }
-      });
-    });
-
-    req.on("error", reject);
-    req.write(body);
-    req.end();
+// Call Groq API
+async function callGroq(prompt) {
+  const completion = await groq.chat.completions.create({
+    model: "llama-3.3-70b-versatile",
+    messages: [{ role: "user", content: prompt }],
+    temperature: 0.4,
+    max_tokens: 1024,
   });
+  return completion.choices[0]?.message?.content ?? "";
 }
 
 // POST /api/advisor/analyse
@@ -57,21 +25,22 @@ exports.analyseSymptoms = async (req, res) => {
       });
     }
 
-    const apiKey = process.env.GEMINI_API_KEY;
+    const apiKey = process.env.GROQ_API_KEY;
     if (!apiKey) {
-      console.error("[Advisor] GEMINI_API_KEY not set in .env");
+      console.error("[Advisor] GROQ_API_KEY not set in .env");
       return res.status(500).json({
         success: false,
-        message: "AI service not configured. GEMINI_API_KEY missing in .env",
+        message: "AI service not configured. GROQ_API_KEY missing in .env",
       });
     }
 
     const prompt = `You are a cautious health advisor AI in a pharmacy app.
 
-User's health concern (may be in any language): "${query.trim()}"
+User's health concern: "${query.trim()}"
+
+IMPORTANT LANGUAGE RULE: Detect the language of the user's input above. You MUST respond entirely in that same language. If the user wrote in Hindi, respond in Hindi. If in Urdu, respond in Urdu. If in English, respond in English. If in any other language, respond in that language. Every field (tips, medicine names, dosage descriptions, precaution) must be in the detected language. Do NOT translate to English.
 
 Instructions:
-- Understand and respond in English regardless of input language
 - Suggest 3-5 practical home care tips
 - Suggest up to 3 common OTC (over-the-counter) medicines with dosage. Never suggest prescription medicines.
 - If symptoms are serious (chest pain, stroke signs, fever >104F/40C, difficulty breathing, severe bleeding): set isSerious=true and suggestDoctor=true
@@ -81,10 +50,10 @@ Instructions:
 Return ONLY a raw JSON object, no markdown, no code fences, no extra text:
 {"isSerious":false,"suggestDoctor":false,"tips":["tip1","tip2","tip3"],"medicines":[{"name":"Medicine (strength)","dosage":"dosage"}],"precaution":"precaution text. Consult a doctor if symptoms persist or worsen."}`;
 
-    const rawText = await callGemini(apiKey, prompt);
+    const rawText = await callGroq(prompt);
 
     if (!rawText) {
-      throw new Error("Empty response from Gemini");
+      throw new Error("Empty response from Groq");
     }
 
     // Extract JSON — handle any surrounding text or code fences

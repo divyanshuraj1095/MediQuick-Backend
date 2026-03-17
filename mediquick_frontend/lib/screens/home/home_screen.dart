@@ -62,21 +62,22 @@ class _WhyChooseSection extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Responsive: 4 cards in a row on desktop/tablet, 2x2 on smaller screens
-        final isWideScreen = constraints.maxWidth > 768;
-        final crossAxisCount = isWideScreen ? 4 : 2;
-        final spacing = isWideScreen ? 20.0 : 16.0;
-        final padding = isWideScreen ? 60.0 : 24.0;
+        final isMobile = constraints.maxWidth < 600;
+        final isDesktop = constraints.maxWidth > 900;
+        final crossAxisCount = isDesktop ? 4 : (isMobile ? 1 : 2);
+        final spacing = isDesktop ? 20.0 : 16.0;
+        final padding = isDesktop ? 60.0 : 24.0;
 
         return Container(
           padding: EdgeInsets.symmetric(horizontal: padding),
           child: Column(
             children: [
               // Section Heading
-              const Text(
+              Text(
                 'Why Choose MediQuick?',
+                textAlign: TextAlign.center,
                 style: TextStyle(
-                  fontSize: 36,
+                  fontSize: isMobile ? 28 : 36,
                   fontWeight: FontWeight.bold,
                   color: AppTheme.textDark,
                 ),
@@ -155,8 +156,23 @@ class _WhyChooseSection extends StatelessWidget {
                 ))
             .toList(),
       );
+    } else if (crossAxisCount == 1) {
+      // Mobile: 1 column
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: features
+            .map((feature) => Padding(
+                  padding: EdgeInsets.only(bottom: spacing),
+                  child: HomeFeatureCard(
+                    icon: feature['icon'] as IconData,
+                    title: feature['title'] as String,
+                    description: feature['description'] as String,
+                  ),
+                ))
+            .toList(),
+      );
     } else {
-      // Mobile/Tablet: 2x2 grid using Wrap
+      // Tablet: 2x2 grid using Wrap
       final cardWidth = (constraints.maxWidth - (24 * 2) - spacing) / 2;
       return Wrap(
         spacing: spacing,

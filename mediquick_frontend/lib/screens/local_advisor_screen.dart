@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
+import 'package:provider/provider.dart';
 import 'dart:convert';
 import '../theme/app_theme.dart';
 import '../config.dart';
+import '../services/cart_service.dart';
 
 class LocalAdvisorScreen extends StatefulWidget {
   const LocalAdvisorScreen({super.key});
@@ -134,6 +136,44 @@ class _LocalAdvisorScreenState extends State<LocalAdvisorScreen>
         backgroundColor: Colors.white,
         elevation: 0,
         iconTheme: const IconThemeData(color: AppTheme.textDark),
+        actions: [
+          Consumer<CartService>(
+            builder: (context, cart, _) {
+              if (cart.totalItems == 0) return const SizedBox();
+              return Padding(
+                padding: const EdgeInsets.only(right: 12),
+                child: Stack(
+                  alignment: Alignment.topRight,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.shopping_cart_outlined, color: AppTheme.textDark),
+                      onPressed: () => Navigator.pushNamed(context, '/cart'),
+                    ),
+                    Positioned(
+                      top: 4,
+                      right: 4,
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: const BoxDecoration(
+                          color: AppTheme.dashboardGreen,
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          '${cart.totalItems}',
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        ],
       ),
       body: SingleChildScrollView(
         controller: _scrollController,
@@ -470,41 +510,7 @@ class _LocalAdvisorScreenState extends State<LocalAdvisorScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ...r.medicines.map((m) => Container(
-                      margin: const EdgeInsets.only(bottom: 10),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFEFF6FF),
-                        borderRadius: BorderRadius.circular(10),
-                        border: Border.all(color: const Color(0xFFBFDBFE)),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.medication,
-                              color: Color(0xFF2563EB), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(m.name,
-                                    style: const TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        fontSize: 14,
-                                        color: AppTheme.textDark)),
-                                if (m.dosage.isNotEmpty) ...[
-                                  const SizedBox(height: 2),
-                                  Text(m.dosage,
-                                      style: const TextStyle(
-                                          fontSize: 12,
-                                          color: AppTheme.textGray)),
-                                ],
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    )),
+                ...r.medicines.map((m) => _MedicineCard(suggestion: m)),
 
                 // ⚠️ Medicine precaution (always shown)
                 Container(
@@ -578,13 +584,13 @@ class _LocalAdvisorScreenState extends State<LocalAdvisorScreen>
         ),
         const SizedBox(height: 24),
 
-        // Search medicines button
+        // Search all medicines button
         SizedBox(
           height: 50,
           child: OutlinedButton.icon(
             onPressed: () => Navigator.pushNamed(context, '/dashboard'),
             icon: const Icon(Icons.search, color: AppTheme.dashboardGreen),
-            label: const Text('Search Medicines on MediQuick',
+            label: const Text('Browse All Medicines on MediQuick',
                 style: TextStyle(
                     color: AppTheme.dashboardGreen, fontWeight: FontWeight.w600)),
             style: OutlinedButton.styleFrom(
@@ -596,6 +602,149 @@ class _LocalAdvisorScreenState extends State<LocalAdvisorScreen>
         ),
         const SizedBox(height: 20),
       ],
+    );
+  }
+}
+
+// ─── Clickable Medicine Card ─────────────────────────────────────────────────
+
+class _MedicineCard extends StatefulWidget {
+  final MedicineSuggestion suggestion;
+  const _MedicineCard({required this.suggestion});
+
+  @override
+  State<_MedicineCard> createState() => _MedicineCardState();
+}
+
+class _MedicineCardState extends State<_MedicineCard> {
+  bool _added = false;
+
+  void _searchMedicine(BuildContext context) {
+    // Navigate to dashboard and pass the medicine name as a search query
+    Navigator.pushNamed(
+      context,
+      '/dashboard',
+      arguments: {'searchQuery': widget.suggestion.name},
+    );
+  }
+
+  void _addToCart(BuildContext context) {
+    final cart = Provider.of<CartService>(context, listen: false);
+    // Add with a placeholder ID based on the name (advisor medicines have no DB id)
+    final placeholderId = 'advisor_${widget.suggestion.name.replaceAll(' ', '_').toLowerCase()}';
+    cart.addItem(
+      id: placeholderId,
+      name: widget.suggestion.name,
+      price: 0.0, // price unknown until user finds on dashboard
+      image: '',
+      quantity: 1,
+    );
+    setState(() => _added = true);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(children: [
+          const Icon(Icons.check_circle, color: Colors.white, size: 18),
+          const SizedBox(width: 10),
+          Expanded(child: Text('"${widget.suggestion.name}" added to cart')),
+        ]),
+        backgroundColor: AppTheme.dashboardGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final m = widget.suggestion;
+    return GestureDetector(
+      onTap: () => _searchMedicine(context),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFEFF6FF),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFFBFDBFE)),
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Padding(
+              padding: EdgeInsets.only(top: 2),
+              child: Icon(Icons.medication, color: Color(0xFF2563EB), size: 20),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    m.name,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: AppTheme.textDark,
+                    ),
+                  ),
+                  if (m.dosage.isNotEmpty) ...[
+                    const SizedBox(height: 2),
+                    Text(
+                      m.dosage,
+                      style: const TextStyle(fontSize: 12, color: AppTheme.textGray),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  // Action buttons row
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      // Search button
+                      OutlinedButton.icon(
+                        onPressed: () => _searchMedicine(context),
+                        icon: const Icon(Icons.search, size: 14),
+                        label: const Text('Search', style: TextStyle(fontSize: 12)),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFF2563EB),
+                          side: const BorderSide(color: Color(0xFF2563EB)),
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                      // Add to cart button
+                      ElevatedButton.icon(
+                        onPressed: _added ? null : () => _addToCart(context),
+                        icon: Icon(
+                          _added ? Icons.check : Icons.add_shopping_cart,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        label: Text(
+                          _added ? 'Added' : 'Add to Cart',
+                          style: const TextStyle(fontSize: 12, color: Colors.white),
+                        ),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: _added
+                              ? Colors.grey.shade400
+                              : AppTheme.dashboardGreen,
+                          padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 12),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

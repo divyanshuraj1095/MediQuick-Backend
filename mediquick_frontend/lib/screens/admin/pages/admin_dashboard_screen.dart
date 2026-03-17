@@ -92,6 +92,7 @@ class AdminDashboardScreen extends StatefulWidget {
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   // godowns panel
   bool _godownsVisible = true;
   bool _godownsLoading = false;
@@ -611,26 +612,47 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // ── Build ────────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.dashboardBg,
-      body: Row(
-        children: [
-          AdminSidebar(
-            activePage: 'dashboard',
-            onAddGodownsTap: _showAddGodownDialog,
-            onAddMedicinesTap: _showAddMedicineDialog,
-          ),
-          Expanded(
-            child: Column(
-              children: [
-                Expanded(
-                  child: _buildContent(),
-                ),
-              ],
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final isDesktop = constraints.maxWidth >= 800;
+
+        return Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: AppTheme.dashboardBg,
+          drawer: isDesktop ? null : Drawer(
+            child: AdminSidebar(
+              activePage: 'dashboard',
+              onAddGodownsTap: () {
+                if (!isDesktop) Navigator.pop(context);
+                _showAddGodownDialog();
+              },
+              onAddMedicinesTap: () {
+                if (!isDesktop) Navigator.pop(context);
+                _showAddMedicineDialog();
+              },
             ),
           ),
-        ],
-      ),
+          body: Row(
+            children: [
+              if (isDesktop)
+                AdminSidebar(
+                  activePage: 'dashboard',
+                  onAddGodownsTap: _showAddGodownDialog,
+                  onAddMedicinesTap: _showAddMedicineDialog,
+                ),
+              Expanded(
+                child: Column(
+                  children: [
+                    Expanded(
+                      child: _buildContent(isDesktop),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
@@ -748,7 +770,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  Widget _buildContent() {
+  Widget _buildContent(bool isDesktop) {
     return SingleChildScrollView(
       padding: const EdgeInsets.all(28),
       child: Column(
@@ -757,17 +779,25 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           // Welcome + refresh
           Row(
             children: [
-              const Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text('Welcome back, Admin',
-                      style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
-                  SizedBox(height: 8),
-                  Text('Here\'s your medicine activity overview',
-                      style: TextStyle(fontSize: 16, color: AppTheme.textGray)),
-                ],
+              if (!isDesktop) ...[
+                IconButton(
+                  icon: const Icon(Icons.menu),
+                  onPressed: () => _scaffoldKey.currentState?.openDrawer(),
+                ),
+                const SizedBox(width: 16),
+              ],
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Welcome back, Admin',
+                        style: TextStyle(fontSize: 28, fontWeight: FontWeight.bold, color: AppTheme.textDark)),
+                    SizedBox(height: 8),
+                    Text('Here\'s your medicine activity overview',
+                        style: TextStyle(fontSize: 16, color: AppTheme.textGray)),
+                  ],
+                ),
               ),
-              const Spacer(),
               IconButton(
                 onPressed: () {
                   if (_godownsVisible) _fetchGodowns();

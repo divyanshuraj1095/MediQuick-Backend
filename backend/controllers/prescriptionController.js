@@ -1,30 +1,45 @@
 const prescriptionService = require("../services/prescriptionSearchService");
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+const Groq = require("groq-sdk");
 const Prescription = require("../models/Prescription");
 const cloudinary = require("../config/cloudinary");
 
-// Initialize Gemini from environment variable
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+// Initialize Groq client
+const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
 
 const extractMedicinesFromFile = async (fileBuffer, mimeType) => {
-    try {
-        const model = genAI.getGenerativeModel({ model: "gemini-2.0-flash" });
+    // Only vision models support image inputs; PDFs are sent as base64 images too
+    const base64Image = fileBuffer.toString("base64");
+    const imageUrl = `data:${mimeType};base64,${base64Image}`;
 
-        const prompt = `You are a medical AI assistant. Extract ALL medicine/drug names, dosages, and quantities from this prescription.
+    const prompt = `You are a medical AI assistant. Extract ALL medicine/drug names, dosages, and quantities from this prescription image.
 Return ONLY a valid JSON array. Do not wrap it in markdown or code blocks.
 Each object must have: "name" (string), "dosage" (string), "quantity" (number).
 Example: [{"name":"Paracetamol 500mg","dosage":"Twice daily","quantity":10}]
 If nothing is found, return [].`;
 
-        const filePart = {
-            inlineData: {
-                data: fileBuffer.toString("base64"),
-                mimeType: mimeType,
-            },
-        };
+    const attemptExtraction = async (modelName) => {
+        const completion = await groq.chat.completions.create({
+            model: modelName,
+            messages: [
+                {
+                    role: "user",
+                    content: [
+                        {
+                            type: "image_url",
+                            image_url: { url: imageUrl },
+                        },
+                        {
+                            type: "text",
+                            text: prompt,
+                        },
+                    ],
+                },
+            ],
+            temperature: 0.2,
+            max_tokens: 1024,
+        });
 
-        const result = await model.generateContent([prompt, filePart]);
-        let responseText = result.response.text().trim();
+        let responseText = (completion.choices[0]?.message?.content ?? "").trim();
 
         // Strip markdown code fences if present
         responseText = responseText
@@ -33,13 +48,32 @@ If nothing is found, return [].`;
             .replace(/```\s*$/i, "")
             .trim();
 
-        const extractedMedicines = JSON.parse(responseText);
-        return Array.isArray(extractedMedicines) ? extractedMedicines : [];
-    } catch (error) {
-        console.error("Gemini AI Error:", error.message);
+        if (!responseText || responseText === "[]") return [];
+
+        const parsed = JSON.parse(responseText);
+        return Array.isArray(parsed) ? parsed : [];
+    };
+
+    // Primary model (supports vision + actively maintained)
+    try {
+        const result = await attemptExtraction("meta-llama/llama-4-scout-17b-16e-instruct");
+        console.log(`[Prescription] Extracted ${result.length} medicine(s) via primary model.`);
+        return result;
+    } catch (primaryErr) {
+        console.warn("[Prescription] Primary model failed, trying fallback:", primaryErr.message);
+    }
+
+    // Fallback model
+    try {
+        const result = await attemptExtraction("llama-3.2-11b-vision-preview");
+        console.log(`[Prescription] Extracted ${result.length} medicine(s) via fallback model.`);
+        return result;
+    } catch (fallbackErr) {
+        console.error("[Prescription] Both vision models failed:", fallbackErr.message);
         return [];
     }
 };
+
 
 // POST /api/prescription/upload
 exports.processPrescriptionImage = async (req, res) => {
