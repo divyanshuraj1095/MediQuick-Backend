@@ -148,43 +148,45 @@ class _DashboardPageState extends State<DashboardPage> {
               },
             ),
           ),
-          body: Row(
-            children: [
-              if (isDesktop)
-                Sidebar(
-                  activeItem: _activeNav,
-                  onNavChanged: (item) {
-                    if (item == NavItem.profile) Navigator.pushReplacementNamed(context, '/profile');
-                    else if (item == NavItem.localAdvisor) Navigator.pushReplacementNamed(context, '/local-advisor');
-                    else if (item == NavItem.uploadPrescription) Navigator.pushReplacementNamed(context, '/upload-prescription');
-                  },
-                ),
-              Expanded(
-                child: Column(
-                  children: [
-                    _TopHeader(
-                      onRefresh: _refresh,
-                      onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
-                    ),
-                    Expanded(
-                      child: _isLoading 
-                        ? const Center(child: CircularProgressIndicator(color: AppTheme.dashboardGreen))
-                        : SingleChildScrollView(
-                            padding: const EdgeInsets.all(24),
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                _buildCategoriesSection(),
-                                const SizedBox(height: 32),
-                                _buildMedicinesSection(),
-                              ],
+          body: SafeArea(
+            child: Row(
+              children: [
+                if (isDesktop)
+                  Sidebar(
+                    activeItem: _activeNav,
+                    onNavChanged: (item) {
+                      if (item == NavItem.profile) Navigator.pushReplacementNamed(context, '/profile');
+                      else if (item == NavItem.localAdvisor) Navigator.pushReplacementNamed(context, '/local-advisor');
+                      else if (item == NavItem.uploadPrescription) Navigator.pushReplacementNamed(context, '/upload-prescription');
+                    },
+                  ),
+                Expanded(
+                  child: Column(
+                    children: [
+                      _TopHeader(
+                        onRefresh: _refresh,
+                        onMenuPressed: isDesktop ? null : () => _scaffoldKey.currentState?.openDrawer(),
+                      ),
+                      Expanded(
+                        child: _isLoading 
+                          ? const Center(child: CircularProgressIndicator(color: AppTheme.dashboardGreen))
+                          : SingleChildScrollView(
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  _buildCategoriesSection(),
+                                  const SizedBox(height: 32),
+                                  _buildMedicinesSection(),
+                                ],
+                              ),
                             ),
-                          ),
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
           endDrawer: const Drawer(child: CartDrawer()),
           floatingActionButton: Consumer<CartService>(
@@ -387,7 +389,7 @@ class _MedicineCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),

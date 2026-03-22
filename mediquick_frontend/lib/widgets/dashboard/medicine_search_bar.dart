@@ -568,7 +568,9 @@ class _ResultTile extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Row(
+                  Wrap(
+                    spacing: 6,
+                    runSpacing: 4,
                     children: [
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -585,8 +587,7 @@ class _ResultTile extends StatelessWidget {
                           ),
                         ),
                       ),
-                      if (isPrescription) ...[
-                        const SizedBox(width: 6),
+                      if (isPrescription)
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                           decoration: BoxDecoration(
@@ -602,7 +603,6 @@ class _ResultTile extends StatelessWidget {
                             ),
                           ),
                         ),
-                      ],
                     ],
                   ),
                 ],
