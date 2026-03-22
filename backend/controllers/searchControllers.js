@@ -5,10 +5,10 @@ exports.search = async (req, res) => {
   try {
     const { keyword, lat, lng } = req.query;
 
-    if (!keyword || !lat || !lng) {
+    if (!lat || !lng) {
       return res.status(400).json({
         success: false,
-        message: "keyword, lat and lng are required"
+        message: "lat and lng are required"
       });
     }
 
@@ -30,14 +30,23 @@ exports.search = async (req, res) => {
 
     const pharmacyIds = nearbyPharmacies.map(p => p._id);
 
+    const searchFilter = keyword 
+      ? {
+          $or: [
+            { name: { $regex: keyword, $options: "i" } },
+            { type: { $regex: keyword, $options: "i" } }
+          ]
+        }
+      : {};
+
     // 2. Find medicines only from nearby pharmacies
     const medicines = await Medicines.find({
-      name: { $regex: keyword, $options: "i" },
+      ...searchFilter,
       isAvailable: true,
       pharmacy: { $in: pharmacyIds }
     })
     .populate("pharmacy", "name location")
-    .limit(20);
+    .limit(keyword ? 20 : 100);
 
     res.status(200).json({
       success: true,

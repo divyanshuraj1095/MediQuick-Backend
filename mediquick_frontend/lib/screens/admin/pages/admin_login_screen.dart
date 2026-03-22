@@ -64,7 +64,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
         child: SafeArea(
           child: Center(
             child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 32),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
@@ -108,7 +108,7 @@ class _AdminLoginScreenState extends State<AdminLoginScreen> {
 
                   // Card
                   Container(
-                    padding: const EdgeInsets.all(28),
+                    padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(20),

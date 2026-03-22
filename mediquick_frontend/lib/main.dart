@@ -4,6 +4,7 @@ import 'theme/app_theme.dart';
 import 'screens/auth/auth_gate.dart';
 import 'screens/home/home_screen.dart';
 import 'pages/dashboard_page.dart';
+import 'pages/profile_page.dart';
 import 'screens/medicine_details_screen.dart';
 import 'screens/cart_screen.dart';
 import 'screens/checkout_screen.dart';
@@ -43,6 +44,7 @@ class MediQuickApp extends StatelessWidget {
 
         // ── Protected routes (require login) ──
         '/dashboard': (context) => const AuthGuard(child: DashboardPage()),
+        '/profile': (context) => const AuthGuard(child: ProfilePage()),
         '/medicine': (context) => const AuthGuard(child: MedicineDetailsScreen()),
         '/cart': (context) => const AuthGuard(child: CartScreen()),
         '/checkout': (context) => const AuthGuard(child: CheckoutScreen()),

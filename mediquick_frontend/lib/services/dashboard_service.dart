@@ -75,7 +75,7 @@ class DashboardService {
     'Personal Care': ['shampoo', 'lotion', 'cream', 'soap', 'gel', 'sanitizer'],
   };
 
-  static String _classifyMedicine(String name) {
+  static String classifyMedicine(String name) {
     final lower = name.toLowerCase();
     for (final entry in _categoryKeywords.entries) {
       for (final keyword in entry.value) {
@@ -142,7 +142,7 @@ class DashboardService {
           final qty = ((item['quantity'] ?? 1) as num).toInt();
           medicineQty[medName] = (medicineQty[medName] ?? 0) + qty;
 
-          final cat = _classifyMedicine(medName);
+          final cat = classifyMedicine(medName);
           if (categoryCounts.containsKey(cat)) {
             categoryCounts[cat] = categoryCounts[cat]! + qty;
           }
@@ -173,7 +173,7 @@ class DashboardService {
         final firstMed = rawItems.isNotEmpty
             ? (rawItems[0]['name'] ?? 'Medicine') as String
             : 'Medicine';
-        final medCategory = _classifyMedicine(firstMed);
+        final medCategory = classifyMedicine(firstMed);
         final totalAmt = ((o['totalAmount'] ?? 0) as num).toDouble();
         final createdAt = DateTime.tryParse(o['createdAt'] ?? '');
         final dateStr = createdAt != null

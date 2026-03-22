@@ -50,24 +50,19 @@ exports.searchMedicines = async (req, res) => {
     try {
         const { keyword, lat, lng } = req.query;
 
-        if (!keyword) {
-            return res.status(200).json({ success: true, results: 0, medicines: [] });
-        }
-
-        // Use a case-insensitive regex pattern for names
-        const regexPattern = new RegExp(keyword, "i");
-
-        // For type matching, replace spaces with .* to handle "pain killer" -> "PAINKILLER"
-        const typeRegexPattern = new RegExp(keyword.split(/\s+/).join(".*"), "i");
-
         // Base query
         const query = {
-            isAvailable: true,
-            $or: [
+            isAvailable: true
+        };
+
+        if (keyword) {
+            const regexPattern = new RegExp(keyword, "i");
+            const typeRegexPattern = new RegExp(keyword.split(/\s+/).join(".*"), "i");
+            query.$or = [
                 { name: regexPattern },
                 { type: typeRegexPattern }
-            ]
-        };
+            ];
+        }
 
         // --- Geographic Filter Pipeline ---
         let finalQuery = { ...query };
