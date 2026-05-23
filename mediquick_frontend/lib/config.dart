@@ -1,7 +1,7 @@
 class Config {
   // static const String apiUrl = 'http://localhost:5000/api';
   // static const apiUrl = "http://10.0.2.2:5000/api";
-  static const apiUrl = "http://192.168.43.232:5000/api"; //laptop ip address
+  static const apiUrl = "https://mediquick-backend-nz0g.onrender.com"; //laptop ip address
   static const String loginUrl = '$apiUrl/auth/login';
   static const String registerUrl = '$apiUrl/auth/register';
   static const String updateAddressUrl = '$apiUrl/auth/address';
